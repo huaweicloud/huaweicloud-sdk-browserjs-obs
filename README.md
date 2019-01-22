@@ -1,1 +1,2 @@
-# huaweicloud-sdk-browserjs-obs
+
+Version:3.0.2
