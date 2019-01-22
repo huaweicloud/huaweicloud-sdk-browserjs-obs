@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Pragma" name="Pragma" content="no-cache">
+<title>list_objects_sample</title>
+
+</head>
+
+<body>
+	
+    <h3>OBS BrowserJS SDK demo</h3>
+    
+    <h4>Basic Configuration</h4>
+    <label>AK:</label> <input type="text" value="*** Provide your Access Key ***" id="ak" size="30"/>
+    <label>SK:</label> <input type="text" value="*** Provide your Secret Key ***" id="sk" size="30"/>
+	<p>
+    <label>Server:</label> <input type="text" value="http://your-endpoint" id="server" size="30"/>
+    <label>Bucket:</label> <input type="text" value="bucketname" id="bucketname"/>
+	
+    <p>
+    <input type="button" value="Click to list objects" onclick="listObjects();"/>
+    <p>
+    <input type="button" value="Click to list objects group by folder" onclick="listObjectsByFolder();"/>
+	<p>
+	<input type="button" value="Click to list objects in way of pagination" onclick="listObjectsByPage();"/>
+	<p>
+    <input type="button" value="Click to batch delete objects" onclick="deleteObjects();"/>
+
+
+</body>
+
+
+<script src="esdk-obs-browserjs.min.js"></script>
+<script type="text/javascript">
+/**
+ * 
+ * This sample demonstrates how to list objects under specified bucket
+ * from OBS using the OBS SDK for BrowserJS.
+ * 
+ */
+
+ function getObsClient(){
+	 /*
+	 * Initialize a obs client instance with your account for accessing OBS
+	 */
+	var ak = document.getElementById('ak').value;
+	var sk = document.getElementById('sk').value;
+	var server = document.getElementById('server').value;
+	return new ObsClient({
+		access_key_id: ak,
+		secret_access_key: sk,
+		server : server,
+		timeout : 60 * 5,
+	});
+}
+
+var keys = [];
+var keyPrefix = 'MyObjectKey';
+var inited = false;
+
+/**
+ * batch delete objects
+ */
+function deleteObjects(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	console.log('Deleting all objects\n');
+	if(keys.length>0){
+		obs.deleteObjects({
+			Bucket: bucketName,
+			Quiet:false,
+			Objects: keys
+		}).then(function(result) {
+			inited = false;
+			if(result.CommonMsg.Status < 300){
+				console.log('Deleteds:');
+				var i=0;
+				for(;i<result.InterfaceResult.Deleteds.length;i++){
+					console.log('Deleted[' + i + ']:');
+					console.log('Key-->'+result.InterfaceResult.Deleteds[i]['Key']);
+					console.log('VersionId-->' + result.InterfaceResult.Deleteds[i]['VersionId']);
+					console.log('DeleteMarker-->' + result.InterfaceResult.Deleteds[i]['DeleteMarker']);
+					console.log('DeleteMarkerVersionId-->' + result.InterfaceResult.Deleteds[i]['DeleteMarkerVersionId']);
+				}
+				console.log('\n');
+				console.log('Errors:');
+				i = 0;
+				for(;i<result.InterfaceResult.Errors.length;i++){
+					console.log('Error[' + i + ']:');
+					console.log('Key-->' + result.InterfaceResult.Errors[i]['Key']);
+					console.log('VersionId-->' + result.InterfaceResult.Errors[i]['VersionId']);
+					console.log('Code-->' + result.InterfaceResult.Errors[i]['Code']);
+					console.log('Message-->' + result.InterfaceResult.Errors[i]['Message']);
+				}
+			}
+			keys = [];
+		});
+	}
+}
+
+function doInsert(obs, bucketName, callback){
+	if(!inited){
+		/*
+		 * First insert 100 objects for demo
+		 */
+		var content = 'Hello OBS';
+		var finishedCount = 0;
+		var objectCount = 100;
+		var i=0;
+		for(;i<objectCount;i++){
+			var key = keyPrefix + i;
+			obs.putObject({
+				Bucket : bucketName,
+				Key : key,
+				Body : content
+			}).then((function(key){
+				return function(result) {
+					finishedCount++;
+					if(result.CommonMsg.Status < 300){
+						console.log('Succeed to put object' + key);
+						keys.push({Key:key});
+					}
+					if(finishedCount === objectCount){
+						console.log('\n');
+						console.log('Put '+ keys.length + ' objects completed.');
+						inited = true;
+						callback();
+					}
+				};
+			})(key));
+		}
+	}else{
+		callback();
+	}
+}
+
+/*
+ * List the objects in way of pagination
+ */
+function listObjectsByPage(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	doInsert(obs, bucketName, function(){
+			function listAll(nextMarker, pageSize, pageIndex){
+				obs.listObjects({
+					Bucket: bucketName,
+					MaxKeys: pageSize,
+					Marker:nextMarker
+				}).then(function(result)  {
+					if(result.CommonMsg.Status < 300){
+						console.log('Page:' + pageIndex + '\n');
+						var j=0;
+						for(;j<result.InterfaceResult.Contents.length;j++){
+							console.log('\tKey-->' + result.InterfaceResult.Contents[j]['Key']);
+							console.log('\tETag-->' + result.InterfaceResult.Contents[j]['ETag']);
+						}
+						console.log('\n');
+						if(result.InterfaceResult.IsTruncated === 'true'){
+							listAll(result.InterfaceResult.NextMarker, pageSize, pageIndex + 1);
+						}
+					}
+				});
+			}
+			listAll(null, 20, 1)
+		}
+	);
+}
+ 
+/*
+ * List objects using default parameters, will return up to 1000 objects
+ */
+function listObjects(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	doInsert(obs, bucketName, function(){
+
+		obs.listObjects({
+			Bucket: bucketName
+		}).then(function(result)  {
+			if(result.CommonMsg.Status < 300){
+				console.log('List objects using default parameters:\n');
+				var j=0;
+				for(;j<result.InterfaceResult.Contents.length;j++){
+					console.log('\tKey-->' + result.InterfaceResult.Contents[j]['Key']);
+					console.log('\tETag-->' + result.InterfaceResult.Contents[j]['ETag']);
+				}
+				console.log('\n');
+			}
+		});
+	});
+}
+
+
+/*
+ * List the objects group by folder
+ */
+function listObjectsByFolder(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	doInsert(obs, bucketName, function(){
+		console.log('List objects group by folder');
+		obs.listObjects({
+			Bucket: bucketName,
+			Delimiter: '/'
+		}).then(function(result)  {
+			if(result.CommonMsg.Status < 300){
+				console.log('Root path:');
+				var j=0;
+				for(;j<result.InterfaceResult.Contents.length;j++){
+					console.log('\tKey-->' + result.InterfaceResult.Contents[j]['Key']);
+					console.log('\tETag-->' + result.InterfaceResult.Contents[j]['ETag']);
+				}
+				console.log('\n');
+				
+				var listObjectsByPrefix = function(commonPrefixes){
+					var i=0;
+					for(;i<commonPrefixes.length;i++){
+						obs.listObjects({
+							Bucket: bucketName,
+							Delimiter: '/',
+							Prefix: commonPrefixes[i]['Prefix']
+						}).then((function(i){
+							return function(result){
+								if(result.CommonMsg.Status < 300){
+									console.log('Folder ' + commonPrefixes[i]['Prefix'] + ':');
+									var j=0;
+									for(;j<result.InterfaceResult.Contents.length;j++){
+										console.log('\tKey-->' + result.InterfaceResult.Contents[j]['Key']);
+										console.log('\tETag-->' + result.InterfaceResult.Contents[j]['ETag']);
+									}
+									console.log('\n');
+									if(result.InterfaceResult.CommonPrefixes && result.InterfaceResult.CommonPrefixes.length > 0){
+										listObjectsByPrefix(result.InterfaceResult.CommonPrefixes);
+									}
+								}
+							};
+						})(i));
+					}
+				};
+				
+				listObjectsByPrefix(result.InterfaceResult.CommonPrefixes);
+			}
+		});
+	});
+}
+
+ 
+
+
+
+</script>
+
+</html>
+

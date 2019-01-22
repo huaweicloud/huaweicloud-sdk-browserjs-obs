@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Pragma" name="Pragma" content="no-cache">
+<title>delete_objects_sample</title>
+
+</head>
+
+<body>
+	
+    <h3>OBS BrowserJS SDK demo</h3>
+    
+    <h4>Basic Configuration</h4>
+    <label>AK:</label> <input type="text" value="*** Provide your Access Key ***" id="ak" size="30"/>
+    <label>SK:</label> <input type="text" value="*** Provide your Secret Key ***" id="sk" size="30"/>
+	<p>
+    <label>Server:</label> <input type="text" value="http://your-endpoint" id="server" size="30"/>
+    <label>Bucket:</label> <input type="text" value="bucketname" id="bucketname"/>
+	
+    <p>
+    <input type="button" value="Click to batch delete objects" onclick="deleteObjects();"/>
+
+
+</body>
+
+
+<script src="esdk-obs-browserjs.min.js"></script>
+<script type="text/javascript">
+/**
+ * This sample demonstrates how to delete objects under specified bucket 
+ * from OBS using the OBS SDK for BrowserJS.
+ */
+
+ function getObsClient(){
+	 /*
+	 * Initialize a obs client instance with your account for accessing OBS
+	 */
+	var ak = document.getElementById('ak').value;
+	var sk = document.getElementById('sk').value;
+	var server = document.getElementById('server').value;
+
+	return new ObsClient({
+		access_key_id: ak,
+		secret_access_key: sk,
+		server : server,
+		timeout : 60 * 5
+	});
+}
+
+function doDelete(keys){
+	console.log('Deleting all objects\n');
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	obs.deleteObjects({
+		Bucket: bucketName,
+		Quiet:false,
+		Objects: keys
+	}).then(function(result) {
+		if(result.CommonMsg.Status < 300){
+			console.log('Deleteds:');
+			var i=0;
+			for(;i<result.InterfaceResult.Deleteds.length;i++){
+				console.log('Deleted[' + i + ']:');
+				console.log('Key-->'+result.InterfaceResult.Deleteds[i]['Key']);
+				console.log('VersionId-->' + result.InterfaceResult.Deleteds[i]['VersionId']);
+				console.log('DeleteMarker-->' + result.InterfaceResult.Deleteds[i]['DeleteMarker']);
+				console.log('DeleteMarkerVersionId-->' + result.InterfaceResult.Deleteds[i]['DeleteMarkerVersionId']);
+			}
+			console.log('\n');
+			console.log('Errors:');
+			i=0;
+			for(;i<result.InterfaceResult.Errors.length;i++){
+				console.log('Error[' + i + ']:');
+				console.log('Key-->' + result.InterfaceResult.Errors[i]['Key']);
+				console.log('VersionId-->' + result.InterfaceResult.Errors[i]['VersionId']);
+				console.log('Code-->' + result.InterfaceResult.Errors[i]['Code']);
+				console.log('Message-->' + result.InterfaceResult.Errors[i]['Message']);
+			}
+		}
+	});
+}
+
+/*
+ * Batch delete objects
+ */
+function deleteObjects(){
+	var keys = [];
+	var bucketName = document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	/*
+	 * Batch put objects into the bucket
+	 */
+	var content = 'Thank you for using Object Storage Servic';
+	var keyPrefix = 'MyObjectKey';
+	var finishedCount = 0;
+	var objectCount = 10;
+	var i=0;
+	for(;i<objectCount;i++){
+		var key = keyPrefix + i;
+		obs.putObject({
+			Bucket : bucketName,
+			Key : key,
+			Body : content
+		}).then((function(key){
+			return function(result) {
+				finishedCount++;
+				if(result.CommonMsg.Status < 300){
+					console.log('Succeed to put object:' + key);
+					keys.push({Key:key});
+				}
+				if(finishedCount === objectCount){
+					console.log('\n');
+					doDelete(keys);
+				}
+			};
+		})(key));
+	}
+ }
+
+ 
+
+
+
+</script>
+
+</html>
+

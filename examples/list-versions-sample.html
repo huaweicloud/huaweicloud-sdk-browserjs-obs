@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Pragma" name="Pragma" content="no-cache">
+<title>list_versions_sample</title>
+
+</head>
+
+<body>
+	
+    <h3>OBS BrowserJS SDK demo</h3>
+    
+    <h4>Basic Configuration</h4>
+    <label>AK:</label> <input type="text" value="*** Provide your Access Key ***" id="ak" size="30"/>
+    <label>SK:</label> <input type="text" value="*** Provide your Secret Key ***" id="sk" size="30"/>
+	<p>
+    <label>Server:</label> <input type="text" value="http://your-endpoint" id="server" size="30"/>
+    <label>Bucket:</label> <input type="text" value="bucketname" id="bucketname"/>
+	
+	<p>
+    <input type="button" value="Click to list versions" onclick="listVersions();"/>
+    <p>
+    <input type="button" value="Click to list versions group by folder" onclick="listVersionsByFolder();"/>
+	<p>
+    <input type="button" value="Click to list versions in way of pagination" onclick="listVersionsByPage();"/>
+	<p>
+    <input type="button" value="Click to batch delete versions" onclick="deleteVersions();"/>
+
+
+</body>
+
+
+<script src="esdk-obs-browserjs.min.js"></script>
+<script type="text/javascript">
+/**
+ * 
+ * This sample demonstrates how to list versions under specified bucket
+ * from OBS using the OBS SDK for BrowserJS.
+ * 
+ */
+
+ function getObsClient(){
+	 /*
+	 * Initialize a obs client instance with your account for accessing OBS
+	 */
+	var ak = document.getElementById('ak').value;
+	var sk = document.getElementById('sk').value;
+	var server = document.getElementById('server').value;
+	return new ObsClient({
+		access_key_id: ak,
+		secret_access_key: sk,
+		server : server,
+		timeout : 60 * 5
+	});
+}
+
+var keyPrefix = 'MyObjectKey';
+var inited = false;
+
+/**
+ * batch delete versions
+ */
+function deleteVersions(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	console.log('Deleting all versions\n');
+	obs.listVersions({
+		Bucket: bucketName
+	}).then(function(result){
+		if(result.CommonMsg.Status < 300){
+			inited = false;
+			var keys = [];
+			var j=0;
+			for(;j<result.InterfaceResult.Versions.length;j++){
+				keys.push({Key:result.InterfaceResult.Versions[j]['Key'], VersionId: result.InterfaceResult.Versions[j]['VersionId']});
+			}
+			var i=0;
+			for(;i<result.InterfaceResult.DeleteMarkers.length;i++){
+				keys.push({Key:result.InterfaceResult.DeleteMarkers[i]['Key'], VersionId: result.InterfaceResult.DeleteMarkers[i]['VersionId']});
+			}
+			if(keys.length > 0){
+				obs.deleteObjects({
+					Bucket: bucketName,
+					Objects: keys
+				}).then(function(result){
+					if(result.CommonMsg.Status < 300){
+						console.log('Deleteds:');
+						var i=0;
+						for(;i<result.InterfaceResult.Deleteds.length;i++){
+							console.log('Deleted[' + i + ']:');
+							console.log('Key-->'+result.InterfaceResult.Deleteds[i]['Key']);
+							console.log('VersionId-->' + result.InterfaceResult.Deleteds[i]['VersionId']);
+							console.log('DeleteMarker-->' + result.InterfaceResult.Deleteds[i]['DeleteMarker']);
+							console.log('DeleteMarkerVersionId-->' + result.InterfaceResult.Deleteds[i]['DeleteMarkerVersionId']);
+						}
+						console.log('\n');
+						console.log('Errors:');
+						i=0;
+						for(;i<result.InterfaceResult.Errors.length;i++){
+							console.log('Error[' + i + ']:');
+							console.log('Key-->' + result.InterfaceResult.Errors[i]['Key']);
+							console.log('VersionId-->' + result.InterfaceResult.Errors[i]['VersionId']);
+							console.log('Code-->' + result.InterfaceResult.Errors[i]['Code']);
+							console.log('Message-->' + result.InterfaceResult.Errors[i]['Message']);
+						}
+					}
+				});
+			}
+		}
+	});
+}
+
+/*
+ * List the versions group by folder
+ */
+function listVersionsByFolder(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	doInsert(obs, bucketName, function(){
+		console.log('List versions group by folder');
+		obs.listVersions({
+			Bucket: bucketName,
+			Delimiter: '/'
+		}).then(function(result)  {
+			if(result.CommonMsg.Status < 300){
+				console.log('Root path:');
+				console.log('Versions:');
+				var j=0;
+				for(;j<result.InterfaceResult.Versions.length;j++){
+					console.log('Version[' + j +  ']:');
+					console.log('Key-->' + result.InterfaceResult.Versions[j]['Key']);
+					console.log('VersionId-->' + result.InterfaceResult.Versions[j]['VersionId']);
+				}
+				console.log('DeleteMarkers:');
+				var i=0;
+				for(;i<result.InterfaceResult.DeleteMarkers.length;i++){
+					console.log('DeleteMarker[' + i +  ']:');
+					console.log('Key-->' + result.InterfaceResult.DeleteMarkers[i]['Key']);
+					console.log('VersionId-->' + result.InterfaceResult.DeleteMarkers[i]['VersionId']);
+				}
+				console.log('\n');
+				
+				
+				var listVersionsByPrefix = function(commonPrefixes){
+					var i=0;
+					for(;i<commonPrefixes.length;i++){
+						var prefix = commonPrefixes[i]['Prefix'];
+						obs.listVersions({
+							Bucket: bucketName,
+							Delimiter: '/',
+							Prefix: prefix
+						}).then(function(result){
+							if(result.CommonMsg.Status < 300){
+								console.log('Folder ' + prefix + ':');
+								console.log('Versions:');
+								var j=0;
+								for(;j<result.InterfaceResult.Versions.length;j++){
+									console.log('Version[' + j +  ']:');
+									console.log('Key-->' + result.InterfaceResult.Versions[j]['Key']);
+									console.log('VersionId-->' + result.InterfaceResult.Versions[j]['VersionId']);
+								}
+								console.log('DeleteMarkers:');
+								var i=0;
+								for(;i<result.InterfaceResult.DeleteMarkers.length;i++){
+									console.log('DeleteMarker[' + i +  ']:');
+									console.log('Key-->' + result.InterfaceResult.DeleteMarkers[i]['Key']);
+									console.log('VersionId-->' + result.InterfaceResult.DeleteMarkers[i]['VersionId']);
+								}
+								console.log('\n');
+								if(result.InterfaceResult.CommonPrefixes && result.InterfaceResult.CommonPrefixes.length > 0){
+									listVersionsByPrefix(result.InterfaceResult.CommonPrefixes);
+								}
+							}
+						});
+					}
+				};
+				listVersionsByPrefix(result.InterfaceResult.CommonPrefixes);
+			}
+		});
+	});
+}
+
+/*
+ * List the versions in way of pagination
+ */
+function listVersionsByPage(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	doInsert(obs, bucketName,
+		function(){
+
+			function listAll(nextKeyMarker,nextVersionIdMarker, pageSize, pageIndex){
+				obs.listVersions({
+					Bucket: bucketName,
+					MaxKeys: pageSize,
+					KeyMarker: nextKeyMarker,
+					VersionIdMarker: nextVersionIdMarker
+				}).then(function(result) {
+					if(result.CommonMsg.Status < 300){
+						console.log('Page:' + pageIndex);
+						console.log('Versions:');
+						var j=0;
+						for(;j<result.InterfaceResult.Versions.length;j++){
+							console.log('Version[' + j +  ']:');
+							console.log('Key-->' + result.InterfaceResult.Versions[j]['Key']);
+							console.log('VersionId-->' + result.InterfaceResult.Versions[j]['VersionId']);
+						}
+						console.log('DeleteMarkers:');
+						var i=0;
+						for(;i<result.InterfaceResult.DeleteMarkers.length;i++){
+							console.log('DeleteMarker[' + i +  ']:');
+							console.log('Key-->' + result.InterfaceResult.DeleteMarkers[i]['Key']);
+							console.log('VersionId-->' + result.InterfaceResult.DeleteMarkers[i]['VersionId']);
+						}
+						console.log('\n');
+						if(result.InterfaceResult.IsTruncated === 'true'){
+							listAll(result.InterfaceResult.NextKeyMarker, result.InterfaceResult.NextVersionIdMarker,pageSize, pageIndex + 1);
+						}
+					}
+				});
+			}
+			console.log('List the versions in way of pagination:');
+			listAll(null, null, 20, 1);
+		}
+	);
+}
+
+/*
+ * List versions using default parameters, will return up to 1000 versions
+ */
+function listVersions(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	doInsert(obs, bucketName, function(){
+		obs.listVersions({
+			Bucket: bucketName
+		}).then(function(result)  {
+			if(result.CommonMsg.Status < 300){
+				console.log('List versions using default parameters:\n');
+				console.log('Versions:');
+				var j=0;
+				for(;j<result.InterfaceResult.Versions.length;j++){
+					console.log('Version[' + j +  ']:');
+					console.log('Key-->' + result.InterfaceResult.Versions[j]['Key']);
+					console.log('VersionId-->' + result.InterfaceResult.Versions[j]['VersionId']);
+				}
+				console.log('DeleteMarkers:');
+				var i=0;
+				for(;i<result.InterfaceResult.DeleteMarkers.length;i++){
+					console.log('DeleteMarker[' + i +  ']:');
+					console.log('Key-->' + result.InterfaceResult.DeleteMarkers[i]['Key']);
+					console.log('VersionId-->' + result.InterfaceResult.DeleteMarkers[i]['VersionId']);
+				}
+				console.log('\n');
+			}
+		});
+	});
+}
+
+function doInsertObject(obs,bucketName,callback){
+	/*
+	 * Insert 2 objects in each folder
+	 */
+	var objectFinishedCount = 0;
+	var length = 0;
+	obs.listObjects({
+		Bucket: bucketName
+	}).then(function(result) {
+		if(result.CommonMsg.Status < 300){
+			length += result.InterfaceResult.Contents.length;
+			var j=0;
+			for(;j<result.InterfaceResult.Contents.length;j++){
+				for(var i=0;i<2;i++){
+					var objectKey = result.InterfaceResult.Contents[j]['Key'] + keyPrefix + i;
+					obs.putObject({
+						Bucket: bucketName,
+						Key : objectKey
+					}).then(function(result)  {
+						objectFinishedCount ++;
+						if(objectFinishedCount === length * 2 + 2){
+							inited = true;
+							callback();
+						}
+					});
+				}
+			}
+		}
+	});
+	
+	/*
+	 * Insert 2 objects in root path
+	 */
+	for(var i=0;i<2;i++){
+		var objectKey = keyPrefix + i;
+		obs.putObject({
+			Bucket: bucketName,
+			Key : objectKey
+		}).then(function(result) {
+			objectFinishedCount ++;
+			if(objectFinishedCount === length * 2 + 2){
+				inited = true;
+				callback();
+			}
+		});
+	}
+}
+
+function doInsert(obs, bucketName, callback){
+	if(inited){
+		callback();
+	}else{
+		/*
+         * Enable bucket versioning
+         */
+		obs.setBucketVersioningConfiguration({
+			Bucket : bucketName,
+			VersionStatus : 'Enabled'
+		}).then(function(result)  {
+			if(result.CommonMsg.Status < 300){
+				console.log('Enable bucket versioning finished.\n');
+				var content = 'Hello OBS';
+				var folderPrefix = 'src';
+				var subFolderPrefix = 'test';
+				
+				var folderFinishedCount = 0;
+				/*
+		         * First prepare folders and sub folders
+		         */
+				for(var i=0;i<3;i++){
+					var key = folderPrefix + i + '/';
+					obs.putObject({
+						Bucket: bucketName,
+						Key : key
+					}).then((function(key){
+						return function(result) {
+							folderFinishedCount++;
+							if(result.CommonMsg.Status < 300){
+								for(var j=0;j<2;j++){
+									var subKey = key + subFolderPrefix + j + '/';
+									obs.putObject({
+										Bucket: bucketName,
+										Key : subKey
+									}).then(function(result) {
+										folderFinishedCount++;
+										if(folderFinishedCount === 2 * 3){
+											doInsertObject(obs,bucketName, callback);
+										}
+									});
+								}
+							}
+						};
+					})(key));
+				}
+			}
+		});
+	}
+}
+ 
+
+
+ 
+
+
+
+</script>
+
+</html>
+

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Pragma" name="Pragma" content="no-cache">
+<title>upload_download_sample</title>
+
+</head>
+
+<body>
+	
+    <h3>OBS BrowserJS SDK demo</h3>
+    
+    <h4>Basic Configuration</h4>
+    <label>AK:</label> <input type="text" value="*** Provide your Access Key ***" id="ak" size="30"/>
+    <label>SK:</label> <input type="text" value="*** Provide your Secret Key ***" id="sk" size="30"/>
+	<p>
+    <label>Server:</label> <input type="text" value="http://your-endpoint" id="server" size="30"/>
+    <label>Bucket:</label> <input type="text" value="bucketname" id="bucketname"/>
+	<label>Key:</label> <input type="text" value="objectkey" id="objectkey"/>
+	<p>
+	<input type="text" value="Hello OBS" id="stringToUpload"/>
+    <input type="button" value="Click to upload object using string" onclick="uploadUsingString();"/>
+    <p>
+    <input type="file" id="fileToUpload"/>
+    <input type="button" value="Click to upload object using file" onclick="uploadUsingFile();"/>
+    <p>
+    <input type="button" value="Click to download object as file" onclick="downloadAsFile();"/>
+    <p>
+    <input type="button" value="Click to download object as string" onclick="downloadAsString();"/>
+	<p>
+	<select id="saveAsByType">
+		<option value="arraybuffer">arraybuffer</option>
+		<option value="blob">blob</option>
+		<option value="text">text</option>
+	</select>
+    <input type="button" value="Click to download object by type" onclick="downloadByType();"/>
+
+</body>
+
+
+<script src="esdk-obs-browserjs.min.js"></script>
+<script type="text/javascript">
+/**
+ * This sample demonstrates how to upload/download an object 
+ * to/from OBS in different ways using the OBS SDK for BrowserJS.
+ */
+
+ function getObsClient(){
+	 /*
+	 * Initialize a obs client instance with your account for accessing OBS
+	 */
+	var ak = document.getElementById('ak').value;
+	var sk = document.getElementById('sk').value;
+	var server = document.getElementById('server').value;
+	return new ObsClient({
+		access_key_id: ak,
+		secret_access_key: sk,
+		server : server,
+		timeout : 60 * 5,
+	});
+}
+
+/**
+ * Upload an object by string
+ */
+function uploadUsingString(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+	obs.putObject({
+		Bucket: bucketName,
+		Key : objectKey,
+		Body : document.getElementById('stringToUpload').value
+	}).then(function(result) {
+		if(result.CommonMsg.Status < 300){
+			console.log('Create object:' + objectKey + ' successfully!\n');
+		}
+	});
+}
+
+/**
+ * Upload an object by file
+ */
+function uploadUsingFile(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+	obs.putObject({
+		Bucket: bucketName,
+		Key : objectKey,
+		SourceFile : document.getElementById('fileToUpload').files[0]
+	}).then(function(result) {
+		if(result.CommonMsg.Status < 300){
+			console.log('Create object:' + objectKey + ' successfully!\n');
+		}
+	});
+}
+
+/*
+ * Download the object to a file
+ */
+function downloadByType(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+
+	obs.getObject({
+		Bucket: bucketName,
+		Key: objectKey,
+		SaveByType: document.getElementById('saveAsByType').value
+	}).then(function(result) {
+		console.log(typeof result.InterfaceResult.Content);
+		console.log('DownloadPath-->\n' + result.InterfaceResult.Content +'\n');
+	});
+}
+
+/*
+ * Download the object by type
+ */
+function downloadAsFile(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+
+	obs.getObject({
+		Bucket: bucketName,
+		Key: objectKey,
+		SaveByType : 'file'
+	}).then(function(result) {
+		console.log(result.InterfaceResult.Content);
+		console.log('DownloadPath-->\n' + result.InterfaceResult.Content.SignedUrl+'\n');
+	});
+}
+
+/*
+ * Download the object as a String
+ */
+function downloadAsString(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+	obs.getObject({
+		Bucket: bucketName,
+		Key: objectKey,
+	}).then(function(result) {
+		if(result.CommonMsg.Status < 300){
+			console.log('Get object content');
+			console.log('Content-->\n' + result.InterfaceResult.Content);
+			console.log('\n');
+		}
+	});
+}
+ 
+
+
+
+</script>
+
+</html>
+

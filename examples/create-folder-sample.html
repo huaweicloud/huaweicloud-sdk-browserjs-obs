@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Pragma" name="Pragma" content="no-cache">
+<title>create_folder_sample</title>
+
+</head>
+
+<body>
+	
+    <h3>OBS BrowserJS SDK demo</h3>
+    
+    <h4>Basic Configuration</h4>
+    <label>AK:</label> <input type="text" value="*** Provide your Access Key ***" id="ak" size="30"/>
+    <label>SK:</label> <input type="text" value="*** Provide your Secret Key ***" id="sk" size="30"/>
+	<p>
+    <label>Server:</label> <input type="text" value="http://your-endpoint" id="server" size="30"/>
+    <label>Bucket:</label> <input type="text" value="bucketname" id="bucketname"/>
+    <p>
+    <input type="button" value="Click to create folder in bucket" onclick="createFolder();"/>
+
+
+</body>
+
+
+<script src="esdk-obs-browserjs.min.js"></script>
+<script type="text/javascript">
+/**
+ * This sample demonstrates how to create an empty folder under 
+ * specified bucket to OBS using the OBS SDK for BrowserJS.
+ */
+
+ function getObsClient(){
+	 /*
+	 * Initialize a obs client instance with your account for accessing OBS
+	 */
+	var ak = document.getElementById('ak').value;
+	var sk = document.getElementById('sk').value;
+	var server = document.getElementById('server').value;
+	return new ObsClient({
+		access_key_id: ak,
+		secret_access_key: sk,
+		server : server,
+		timeout : 60 * 5,
+	});
+}
+ 
+ /**
+ * create folder in two ways
+ */
+ function createFolder(){
+		var bucketName =  document.getElementById('bucketname').value;
+		var obs = getObsClient();
+	     /*
+         * Way 1:
+         */
+		var keySuffixWithSlash1 = 'MyObjectKey1/';
+		obs.putObject({
+			Bucket : bucketName,
+			Key : keySuffixWithSlash1
+		}).then(function(result)  {
+			if(result.CommonMsg.Status < 300){
+				console.log('Create an empty folder ' + keySuffixWithSlash1 + ' finished.\n');
+				/*
+	             * Verify whether the size of the empty folder is zero 
+	             */
+				obs.getObjectMetadata({
+					Bucket : bucketName,
+					Key : keySuffixWithSlash1
+				}).then(function(result)  {
+					if(result.CommonMsg.Status < 300){
+						console.log('Size of the empty folder ' + keySuffixWithSlash1 + ' is ' + result.InterfaceResult.ContentLength);
+					}
+				});
+			}
+		});
+		
+        /*
+         * Way 2:
+         */
+		var keySuffixWithSlash2 = 'MyObjectKey2/';
+		obs.putObject({
+			Bucket : bucketName,
+			Key : keySuffixWithSlash2,
+			Body : ''
+		}).then(function(result)  {
+			if(result.CommonMsg.Status < 300){
+				console.log('Create an empty folder ' + keySuffixWithSlash2 + ' finished.\n');
+				/*
+	             * Verify whether the size of the empty folder is zero 
+	             */
+				obs.getObjectMetadata({
+					Bucket : bucketName,
+					Key : keySuffixWithSlash1
+				}).then(function(result)  {
+					if(result.CommonMsg.Status < 300){
+						console.log('Size of the empty folder ' + keySuffixWithSlash2 + ' is ' + result.InterfaceResult.ContentLength);
+					}
+				});
+			}
+		});
+ }
+
+ 
+
+
+
+</script>
+
+</html>
+

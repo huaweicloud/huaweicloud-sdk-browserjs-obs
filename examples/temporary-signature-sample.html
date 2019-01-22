@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Pragma" name="Pragma" content="no-cache">
+<title>temporary_signature_sample</title>
+
+</head>
+
+<body>
+	
+    <h3>OBS BrowserJS SDK demo</h3>
+    
+    <h4>Basic Configuration</h4>
+    <label>AK:</label> <input type="text" value="*** Provide your Access Key ***" id="ak" size="30"/>
+    <label>SK:</label> <input type="text" value="*** Provide your Secret Key ***" id="sk" size="30"/>
+	<p>
+    <label>Server:</label> <input type="text" value="http://your-endpoint" id="server" size="30"/>
+    <label>Bucket:</label> <input type="text" value="bucketname" id="bucketname"/>
+	<label>Key:</label> <input type="text" value="objectkey" id="objectkey"/>
+	
+    <p>
+    <input type="button" value="Click to upload object" onclick="putObject();"/>
+     <p>
+    <input type="button" value="Click to download object" onclick="getObject();"/>
+     <p>
+    <input type="button" value="Click to set object acl" onclick="setObjectAcl();"/>
+     <p>
+    <input type="button" value="Click to get object acl" onclick="getObjectAcl();"/>
+     <p>
+    <input type="button" value="Click to delete object" onclick="deleteObject();"/>
+
+
+</body>
+
+
+<script src="esdk-obs-browserjs.min.js"></script>
+<script type="text/javascript">
+/**
+ * This sample demonstrates how to do common operations in temporary signature way
+ * on OBS using the OBS SDK for BrowserJS.
+ */
+
+ function getObsClient(){
+	 /*
+	 * Initialize a obs client instance with your account for accessing OBS
+	 */
+	var ak = document.getElementById('ak').value;
+	var sk = document.getElementById('sk').value;
+	var server = document.getElementById('server').value;
+	return new ObsClient({
+		access_key_id: ak,
+		secret_access_key: sk,
+		server : server,
+		timeout : 60 * 5,
+		signature : 'obs'
+	});
+}
+ 
+function doAction(msg, method, _url, content,headers){
+	console.log(headers);
+	var req = {
+		method : method,
+		url : _url,
+		withCredentials: false, 
+		headers : headers || {},
+		validateStatus: function(status){
+			return status >= 200;
+		},
+		data : content
+	};
+	
+	axios.request(req).then(function (response) {
+		if(response.status <300){
+			console.log(msg + ' using temporary signature successfully.');
+			console.log('response data:');
+			console.log(response.data);
+			console.log('\n');
+		}else{
+			console.log(msg + ' using temporary signature failed!');
+			console.log('status:' + response.status);
+			console.log('\n');
+		}
+	}).catch(function (err) {
+		console.log(msg + ' using temporary signature failed!');
+		console.log('\n');
+	});
+
+}
+ 
+function putObject(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+	var method = 'PUT';
+	var content = 'Hello OBS';
+	var headers = {};
+	headers['Content-Length'] = content.length;
+	headers['Content-Type'] = 'text/plain';//if not set, axios will add content-type automaticlly
+	var res = obs.createSignedUrlSync({Method : method, Bucket : bucketName, Key: objectKey, Headers: headers});
+	doAction('Create object', method, res.SignedUrl, content, res.ActualSignedRequestHeaders);
+}
+
+function getObject(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+	var method = 'GET';
+	var res = obs.createV2SignedUrlSync({Method : method, Bucket : bucketName, Key: objectKey});
+	doAction('Get object', method, res.SignedUrl, null, res.ActualSignedRequestHeaders);
+}
+
+function setObjectAcl(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+	var method = 'PUT';
+	var headers = {'x-obs-acl' : obs.enums.AclPublicRead};
+	headers['Content-Type'] = 'text/plain';//if not set, axios will add content-type automaticlly
+	var res = obs.createV2SignedUrlSync({Method : method, Bucket : bucketName, Key: objectKey, SpecialParam: 'acl', Headers: headers});
+	doAction('Set object acl', method, res.SignedUrl, null, res.ActualSignedRequestHeaders);
+}
+
+function getObjectAcl(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+	var method = 'GET';
+	var res = obs.createV2SignedUrlSync({Method : method, Bucket : bucketName, Key: objectKey, SpecialParam: 'acl'});
+	doAction('Get object acl', method, res.SignedUrl, null, res.ActualSignedRequestHeaders);
+}
+
+function deleteObject(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+	var method = 'DELETE';
+	var res = obs.createV2SignedUrlSync({Method : method, Bucket : bucketName, Key: objectKey});
+	doAction('Delete object', method, res.SignedUrl, null, res.ActualSignedRequestHeaders);
+}
+
+
+</script>
+
+</html>
+

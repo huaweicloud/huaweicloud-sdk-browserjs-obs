@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Pragma" name="Pragma" content="no-cache">
+<title>esdk_obs_browserjs_demo</title>
+
+</head>
+
+<body>
+	
+    <h3>OBS BrowserJS SDK demo</h3>
+    
+    <h4>Basic Configuration</h4>
+    <label>AK:</label> <input type="text" value="*** Provide your Access Key ***" id="ak" size="30"/>
+    <label>SK:</label> <input type="text" value="*** Provide your Secret Key ***" id="sk" size="30"/>
+    <label>Server:</label> <input type="text" value="http://your-endpoint" id="server" size="30"/>
+    <p>
+    
+    <h5>Upload File</h5>
+    <label>Bucket:</label> <input type="text" value="bucketname" id="bucket4upload"/>
+    <p>
+    <label>Key:</label> <input type="text" value="objectkey" id="key4upload"/>
+    <p>
+    <label>PartSize:</label> <input type="text" value="5242880" id="partSize4upload"/>
+    <p>
+    <input type="file" id="files"/>
+    <input type="button" value="Click to upload" onclick="doUpload();"/>
+	<input type="button" value="Click to upload through multipart" onclick="doUploadMultipart();"/>
+    <P>
+    <h5>Download File</h5>
+    <label>Bucket:</label> <input type="text" value="bucketname" id="bucket4download"/>
+    <p>
+    <label>Key:</label> <input type="text" value="objectkey" id="key4download"/>
+    <p>
+    <input type="button" value="Click to download" onclick="doDownload();"/>
+    <p>
+    <h5>List Objects</h5>
+    <label>Bucket:</label> <input type="text" value="bucketname" id="bucket4listobjects"/>
+    <p>
+    <input type="button" value="Click to list objects" onclick="doListObjects();"/>
+    <p>
+</body>
+
+
+
+<!-- injector:js -->
+<script src="node_modules/babel-polyfill/dist/polyfill.js"></script>
+<script src="base64.js"></script>
+<script src="sha.js"></script>
+<script src="URI.js"></script>
+<script src="axios.js"></script>
+<script src="log.js"></script>
+<script src="v2Model.js"></script>
+<script src="obsModel.js"></script>
+<script src="xml2js.js"></script>
+<script src="md5.js"></script>
+<script src="utils.js"></script>
+<script src="enums.js"></script>
+<script src="obs.js"></script>
+<!-- endinjector -->
+
+<script type="text/javascript">
+	
+	function getObsClient(){
+		var ak = document.getElementById('ak').value;
+		var sk = document.getElementById('sk').value;
+		var server = document.getElementById('server').value;
+		var obsClient = new ObsClient({
+			access_key_id: ak,
+			secret_access_key: sk,
+			server : server,
+			timeout : 60 * 5,
+		});
+		return obsClient;
+	}
+	
+	function doDownload(){
+		// get object
+		var bucketName = document.getElementById('bucket4download');
+		var objectKey = document.getElementById('key4download');
+		getObsClient().getObject({
+			Bucket : bucketName.value,
+			Key : objectKey.value,
+			SaveByType : 'file',
+		}).then(function(result){
+			// download file path
+			console.log(result.InterfaceResult.Content);
+		}).catch(function(err){
+			console.error('err:' + err);
+		});
+	}
+	
+	function doListObjects(){
+		var bucketName = document.getElementById('bucket4listobjects');
+		// list objects
+	 	getObsClient().listObjects({
+			Bucket: bucketName.value,
+			MaxKeys: 100,
+		}).then(function(result){
+			console.log('CommonMsg:');
+			console.log('Status-->' + result.CommonMsg.Status);
+			console.log('Code-->' + result.CommonMsg.Code);
+			console.log('Message-->' + result.CommonMsg.Message);
+			console.log('HostId-->' + result.CommonMsg.HostId);
+			if(result.InterfaceResult){
+				console.log('RequestId-->' + result.InterfaceResult.RequestId);
+				console.log('Bucket-->' + result.InterfaceResult.Bucket);
+				console.log('Delimiter-->' + result.InterfaceResult.Delimiter);
+				console.log('Marker-->' + result.InterfaceResult.Marker);
+				console.log('NextMarker-->' + result.InterfaceResult.NextMarker);
+				console.log('MaxKeys-->' + result.InterfaceResult.MaxKeys);
+				console.log('IsTruncated-->' + result.InterfaceResult.IsTruncated);
+				console.log('Contents:');
+				var j=0;
+				for(;j<result.InterfaceResult.Contents.length;j++){
+					console.log('Contents[' + j +  ']:');
+					console.log('Key-->' + result.InterfaceResult.Contents[j]['Key']);
+					console.log('LastModified-->' + result.InterfaceResult.Contents[j]['LastModified']);
+					console.log('ETag-->' + result.InterfaceResult.Contents[j]['ETag']);
+					console.log('Size-->' + result.InterfaceResult.Contents[j]['Size']);
+					console.log('Owner[ID]-->' + result.InterfaceResult.Contents[j]['Owner']['ID']);
+					console.log('Owner[Name]-->' + result.InterfaceResult.Contents[j]['Owner']['Name']);
+					console.log('StorageClass-->' + result.InterfaceResult.Contents[j]['StorageClass']);
+				}
+				console.log('CommonPrefixes:');
+				var i=0;
+				for(;i<result.InterfaceResult.CommonPrefixes.length;i++){
+					console.log('CommonPrefix[' + i +  ']:');
+					console.log('Prefix-->' + result.InterfaceResult.CommonPrefixes[i]['Prefix']);
+				}
+			}
+		}).catch(function(err){
+			console.error('err:' + err);
+		});
+	}
+
+	function doUpload(){ 
+		var bucketName = document.getElementById('bucket4upload');
+		var objectKey = document.getElementById('key4upload');
+		// put objects
+ 		getObsClient().putObject({
+			Bucket:bucketName.value,
+			Key:objectKey.value,
+			Metadata:{property:'property-value'},
+			SourceFile : document.getElementById('files').files[0]
+		}).then(function(result){
+			console.log('CommonMsg:');
+			console.log('Status-->' + result.CommonMsg.Status);
+			console.log('Code-->' + result.CommonMsg.Code);
+			console.log('Message-->' + result.CommonMsg.Message);
+			console.log('HostId-->' + result.CommonMsg.HostId);
+			console.log('InterfaceResult:');
+			if(result.InterfaceResult){
+				console.log('RequestId-->' + result.InterfaceResult.RequestId);
+				console.log('ETag-->' + result.InterfaceResult.ETag);
+				console.log('VersionId-->' + result.InterfaceResult.VersionId);
+				console.log('StorageClass-->' + result.InterfaceResult.StorageClass);
+			}
+		}).catch(function(err){
+			console.error('err:' + err);
+		}); 
+	}
+	
+	var globalContext = {}; 
+	globalContext.maxTaskNum = 5;
+	globalContext.currentTaskNum = 0;
+	
+	function doUploadPart(obsClient, uploadPartStatus){
+		while(uploadPartStatus.currentPartIndex < uploadPartStatus.partCount && globalContext.currentTaskNum < globalContext.maxTaskNum){
+			var offset = uploadPartStatus.currentPartIndex * uploadPartStatus.partSize;
+			var currPartSize = (uploadPartStatus.currentPartIndex + 1 === uploadPartStatus.partCount) ? uploadPartStatus.fileSize - offset : uploadPartStatus.partSize;
+			var partNumber = uploadPartStatus.currentPartIndex + 1;
+			uploadPartStatus.currentPartIndex++;
+			globalContext.currentTaskNum++;
+			
+			obsClient.uploadPart({
+				Bucket:uploadPartStatus.bucketName,
+				Key:uploadPartStatus.objectKey,
+				PartNumber: partNumber,
+				UploadId : uploadPartStatus.uploadId,
+				SourceFile: uploadPartStatus.file,
+				Offset : offset,
+				PartSize : currPartSize
+			}).then(function(result) {
+				globalContext.currentTaskNum--;
+				doUploadPart(obsClient, uploadPartStatus);
+				if(result.CommonMsg.Status < 300){
+					console.log('Part:' + partNumber + ' finished, etag:' + result.InterfaceResult.ETag);
+					uploadPartStatus.parts.push({PartNumber : partNumber, ETag : result.InterfaceResult.ETag});
+					if(uploadPartStatus.parts.length === uploadPartStatus.partCount){
+						var _parts = uploadPartStatus.parts.sort(function(a, b) {
+							if(a.PartNumber >= b.PartNumber){
+								return 1;
+							}
+							return -1;
+						});
+						obsClient.completeMultipartUpload({
+							Bucket:uploadPartStatus.bucketName,
+							Key:uploadPartStatus.objectKey,
+							UploadId: uploadPartStatus.uploadId,
+							Parts: _parts
+						}, function(err, result){
+							if(!err && result.CommonMsg.Status < 300){
+								console.log('Complete to upload multiparts finished.\n');
+							}else{
+								var msg = err || result.CommonMsg.Code;
+								console.error(msg);
+							}
+						});
+					}
+				}else{
+					console.error(result.CommonMsg.Code);
+				}
+			}).catch(function(err){
+				console.error('err:' + err);
+			});
+		}
+	}
+	
+	function doUploadMultipart(){
+		var bucketName = document.getElementById('bucket4upload');
+		var objectKey = document.getElementById('key4upload');
+		var partSize = parseInt(document.getElementById('partSize4upload').value);
+		var obsClient = getObsClient();
+		
+		var file = document.getElementById('files').files[0];
+		var fileSize = file.size;
+ 		obsClient.initiateMultipartUpload({
+			Bucket:bucketName.value,
+			Key:objectKey.value
+		}).then(function(result){
+			var uploadId = result.InterfaceResult.UploadId;
+			console.log('uploadId:' + uploadId);
+			var partCount = fileSize % partSize === 0 ? Math.floor(fileSize / partSize) : Math.floor(fileSize / partSize) + 1;
+			console.log('partCount:' + partCount);
+			var uploadPartStatus = {
+				bucketName : bucketName.value,
+				objectKey : objectKey.value,
+				uploadId : uploadId,
+				file : file,
+				fileSize : fileSize,
+				partSize : partSize,
+				partCount : partCount,
+				currentPartIndex : 0,
+				parts : []
+			};
+			doUploadPart(obsClient, uploadPartStatus);
+		}).catch(function(err){
+			console.error('err:' + err);
+		}); 		
+
+	}
+
+</script>
+
+</html>

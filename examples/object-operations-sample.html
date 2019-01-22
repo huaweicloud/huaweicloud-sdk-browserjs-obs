@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Pragma" name="Pragma" content="no-cache">
+<title>object_operations_sample</title>
+
+</head>
+
+<body>
+	
+    <h3>OBS BrowserJS SDK demo</h3>
+    
+    <h4>Basic Configuration</h4>
+    <label>AK:</label> <input type="text" value="*** Provide your Access Key ***" id="ak" size="30"/>
+    <label>SK:</label> <input type="text" value="*** Provide your Secret Key ***" id="sk" size="30"/>
+	<p>
+    <label>Server:</label> <input type="text" value="http://your-endpoint" id="server" size="30"/>
+    <label>Bucket:</label> <input type="text" value="bucketname" id="bucketname"/>
+	<label>Key:</label> <input type="text" value="objectkey" id="objectkey"/>
+	
+    <p>
+    <input type="button" value="Click to upload object" onclick="putObject();"/>
+	<p>
+    <input type="button" value="Click to get object metadata" onclick="getObjectMetadata();"/>
+	<p>
+    <input type="button" value="Click to download object" onclick="getObject();"/>
+	<p>
+    <input type="button" value="Click to copy object" onclick="copyObject();"/>
+	<p>
+    <input type="button" value="Click to set/get object acl" onclick="doObjectAcl();"/>
+	<p>
+    <input type="button" value="Click to delete object" onclick="deleteObject();"/>
+
+</body>
+
+
+<script src="esdk-obs-browserjs.min.js"></script>
+<script type="text/javascript">
+/**
+ * This sample demonstrates how to do object-related operations
+ * (such as create/delete/get/copy object, do object ACL) 
+ * on OBS using the OBS SDK for BrowserJS.
+ */
+
+ function getObsClient(){
+	 /*
+	 * Initialize a obs client instance with your account for accessing OBS
+	 */
+	var ak = document.getElementById('ak').value;
+	var sk = document.getElementById('sk').value;
+	var server = document.getElementById('server').value;
+
+	return new ObsClient({
+		access_key_id: ak,
+		secret_access_key: sk,
+		server : server,
+		timeout : 60 * 5,
+	});
+}
+ 
+ /*
+ * Put object
+ */
+ function putObject(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+	obs.putObject({
+		Bucket: bucketName,
+		Key : objectKey,
+		Body : 'Hello OBS'
+	}).then(function(result) {
+		if(result.CommonMsg.Status < 300){
+			console.log('Create object:' + objectKey + ' successfully!\n');
+		}
+	});
+ }
+ /*
+ * Get object metadata
+ */
+ function getObjectMetadata(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+	obs.getObjectMetadata({
+		Bucket: bucketName,
+		Key : objectKey
+	}).then(function(result) {
+		if(result.CommonMsg.Status < 300){
+			console.log('Get object metadata');
+			console.log('\tETag-->' + result.InterfaceResult.ETag);
+			console.log('\tContentLength-->' + result.InterfaceResult.ContentLength);
+			console.log('\n');
+		}
+	});
+}
+/*
+ * Get object
+ */
+function getObject(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+	obs.getObject({
+		Bucket: bucketName,
+		Key : objectKey
+	}).then(function(result){
+		if(result.CommonMsg.Status < 300){
+			console.log('Get object content');
+			console.log('\tContent-->' + result.InterfaceResult.Content);
+			console.log('\n');
+		}
+	});
+}
+/*
+ * Copy object
+ */
+function copyObject(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+	obs.copyObject({
+		Bucket: bucketName,
+		Key: objectKey + '-back',
+		CopySource : bucketName + '/' + objectKey,
+		MetadataDirective : obs.enums.CopyMetadata
+	}).then(function(result)  {
+		if(result.CommonMsg.Status < 300){
+			console.log('Copy object');
+			console.log('\tETag-->' + result.InterfaceResult.ETag);
+			console.log('\n');
+		}
+	});	
+}
+
+/*
+ * Put/Get object acl operations
+ */
+function doObjectAcl(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+	obs.setObjectAcl({
+		Bucket: bucketName,
+		Key: objectKey,
+		ACL : obs.enums.AclPublicRead
+	}).then(function(result)  {
+		if(result.CommonMsg.Status < 300){
+			console.log('Set object ACL to ' + obs.enums.AclPublicRead + ' finished. \n');
+			obs.getObjectAcl({
+				Bucket: bucketName,
+				Key: objectKey
+			}).then(function(result) {
+				console.log('Get object ACL:');
+				console.log('\tOwner[ID]-->' + result.InterfaceResult.Owner.ID);
+				console.log('\tOwner[Name]-->' + result.InterfaceResult.Owner.Name);
+				console.log('\tGrants:');
+				var i=0;
+				for(;i<result.InterfaceResult.Grants.length;i++){
+					console.log('\tGrant[' + i + ']:');
+					console.log('\tGrantee[ID]-->' + result.InterfaceResult.Grants[i]['Grantee']['ID']);
+					console.log('\tGrantee[Name]-->' + result.InterfaceResult.Grants[i]['Grantee']['Name']);
+					console.log('\tGrantee[URI]-->' + result.InterfaceResult.Grants[i]['Grantee']['URI']);
+					console.log('\tPermission-->' + result.InterfaceResult.Grants[i]['Permission']);
+				}
+				console.log('\n');
+			});
+		}
+	});
+}
+/*
+ * Delete object
+ */
+function deleteObject(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var objectKey =  document.getElementById('objectkey').value;
+	var obs = getObsClient();
+	obs.deleteObject({
+		Bucket: bucketName,
+		Key: objectKey
+	}).then(function(result) {
+		if(result.CommonMsg.Status < 300){
+			console.log('Delete object ' + objectKey +  ' finished.\n');
+		}
+		obs.deleteObject({
+			Bucket: bucketName,
+			Key: objectKey + '-back'
+		}).then(function(result)  {
+			if(result.CommonMsg.Status < 300){
+				console.log('Delete object ' + objectKey + '-back' +  ' finished.\n');
+			}
+		});
+	});
+}
+
+ 
+
+
+
+</script>
+
+</html>
+

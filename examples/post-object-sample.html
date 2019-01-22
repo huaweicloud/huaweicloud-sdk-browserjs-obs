@@ -1,0 +1,101 @@
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Pragma" name="Pragma" content="no-cache">
+<title>post_object_sample</title>
+</head>
+<body>
+
+
+   <h3>OBS BrowserJS SDK demo</h3>
+   
+   <h4>Basic Configuration</h4>
+    <label>AK:</label> <input type="text" value="*** Provide your Access Key ***" id="ak" size="30"/>
+    <label>SK:</label> <input type="text" value="*** Provide your Secret Key ***" id="sk" size="30"/>
+	<p>
+    <label>Server:</label> <input type="text" value="your-endpoint" id="server" size="30"/>
+    <label>Bucket:</label> <input type="text" value="bucketname" id="bucketname"/>
+
+
+<form method="post" enctype="multipart/form-data" id="postForm">
+Object key
+<!-- Object name -->
+<input type="text" name="key" value="objectkey" id="objectkey"/>
+<p>
+ACL
+<!-- Object ACL -->
+<input type="text" name="x-obs-acl" value="public-read" id="x-obs-acl"/>
+<p>
+Content-Type
+<!-- Object MIME type -->
+<input type="text" name="content-type" value="text/plain" id="content-type"/>
+<p>
+<!-- Customized metadata -->
+<input type="text" name="x-obs-meta-property1" value="property-value1" id="x-obs-meta-property1"/>
+<p>
+<input type="text" name="x-obs-meta-property2" value="property-value2" id="x-obs-meta-property2"/>
+<!-- Base64 code of the policy -->
+<input type="hidden" name="policy" value="*** Provide your policy ***" id="policy"/>
+<!-- Signature information -->
+<input type="hidden" name="signature" value="*** Provide your signature ***" id="signature"/>
+<!-- AK -->
+<input type="hidden" name="accessKeyId" value="*** Provide your Access Key ***" id="accessKeyId"/>
+<p>
+<input name="file" type="file" />
+<input name="Click to upload file" value="Upload" type="button" onclick="doUpload();" />
+</form>
+</body>
+
+<script src="esdk-obs-browserjs.min.js"></script>
+<script type="text/javascript">
+/**
+ * This sample demonstrates how to post object under specified bucket from
+ * OBS using the OBS SDK for BrowserJS.
+ */
+ 
+ function getObsClient(){
+	 /*
+	 * Initialize a obs client instance with your account for accessing OBS
+	 */
+	var ak = document.getElementById('ak').value;
+	var sk = document.getElementById('sk').value;
+	var server = document.getElementById('server').value;
+	return new ObsClient({
+		access_key_id: ak,
+		secret_access_key: sk,
+		server : server,
+		signature : 'obs',
+		timeout : 60 * 5
+	});
+}
+ 
+ function doUpload(){
+	 var obs = getObsClient();
+	 var server = document.getElementById('server').value;
+	 var bucketName = document.getElementById('bucketname').value;
+	 var acl = document.getElementById('x-obs-acl');
+	 var contentType = document.getElementById('content-type');
+	 var meta1 = document.getElementById('x-obs-meta-property1');
+	 var meta2 = document.getElementById('x-obs-meta-property2');
+	 var formParams = {'x-obs-acl': acl.value, 'content-type': contentType.value, 'x-obs-meta-property1': meta1.value, 'x-obs-meta-property2': meta2.value};
+	 var res = obs.createPostSignatureSync({Expires:3600, FormParams: formParams});
+	 
+	 var policy = document.getElementById('policy');
+	 var signature = document.getElementById('signature');
+	 policy.value = res.Policy;
+	 signature.value = res.Signature;
+	 var accessKeyId = document.getElementById('accessKeyId');
+	 accessKeyId.value = document.getElementById('ak').value;
+	 
+	 var postForm = document.getElementById('postForm');
+	 
+	 postForm.action = 'http://' + bucketName + '.' + server + '/';
+	 postForm.submit();
+	 
+	 console.log('Creating object in post way');
+ }
+ 
+</script>
+
+</html>

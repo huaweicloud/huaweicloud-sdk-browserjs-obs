@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Pragma" name="Pragma" content="no-cache">
+<title>bucket_operations_sample</title>
+
+</head>
+
+<body>
+	
+    <h3>OBS BrowserJS SDK demo</h3>
+    
+    <h4>Basic Configuration</h4>
+    <label>AK:</label> <input type="text" value="*** Provide your Access Key ***" id="ak" size="30"/>
+    <label>SK:</label> <input type="text" value="*** Provide your Secret Key ***" id="sk" size="30"/>
+	<p>
+    <label>Server:</label> <input type="text" value="http://your-endpoint" id="server" size="30"/>
+    <label>Bucket:</label> <input type="text" value="bucketname" id="bucketname"/>
+    <p>
+    <input type="button" value="Click to get bucket location" onclick="getBucketLocation();"/>
+    <p>
+	<p>
+    <input type="button" value="Click to get bucket storage info" onclick="getBucketStorageInfo();"/>
+    <p>
+	<input type="button" value="Click to get set/get bucket quota" onclick="doBucketQuota();"/>
+	    <p>
+	<input type="button" value="Click to get set/get bucket versioning status" onclick="doBucketVersioning();"/>
+	    <p>
+	<input type="button" value="Click to get set/get bucket acl" onclick="doBucketAcl();"/>
+		    <p>
+	<input type="button" value="Click to get set/get/delete bucket logging" onclick="doBucketLogging();"/>
+		    <p>
+	<input type="button" value="Click to get get bucket metadata" onclick="getBucketMetadata();"/>
+		    <p>
+	<input type="button" value="Click to get set/get/delete bucket website" onclick="doBucketWebsite();"/>
+		    <p>
+	<input type="button" value="Click to get set/get/delete bucket lifecyle" onclick="doBucketLifecycle();"/>
+		    <p>
+	<input type="button" value="Click to get set/get/delete bucket tagging" onclick="doBucketTagging();"/>
+</body>
+
+
+<script src="esdk-obs-browserjs.min.js"></script>
+<script type="text/javascript">
+/**
+ * This sample demonstrates how to do bucket-related operations
+ * (such as do bucket ACL/Lifecycle/Logging/Website/Location/Tagging) 
+ * on OBS using the OBS SDK for BrowserJS.
+ */
+
+function getObsClient(){
+	 /*
+	 * Initialize a obs client instance with your account for accessing OBS
+	 */
+	var ak = document.getElementById('ak').value;
+	var sk = document.getElementById('sk').value;
+	var server = document.getElementById('server').value;
+	return new ObsClient({
+		access_key_id: ak,
+		secret_access_key: sk,
+		server : server,
+		timeout : 60 * 5,
+	});
+}
+ 
+/*
+ * Get bucket location operation
+ */
+ function getBucketLocation(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	obs.getBucketLocation({
+		Bucket : bucketName
+	}).then(function(result) {
+		if(result.CommonMsg.Status < 300){
+			console.log('Get bucket location ' + result.InterfaceResult.Location + '\n');
+		}
+	});
+}
+
+/*
+ * Get bucket storageInfo operation 
+ */
+function getBucketStorageInfo(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	obs.getBucketStorageInfo({
+		Bucket : bucketName
+	}).then(function(result) {
+		if(result.CommonMsg.Status < 300){
+			console.log('Get bucket storageInfo:');
+			console.log('\tsize:' + result.InterfaceResult.Size);
+			console.log('\tobjectNumber:' + result.InterfaceResult.ObjectNumber);
+			console.log('\n');
+		}
+	});
+}
+
+ /*
+ * Put/Get bucket quota operations
+ */
+function doBucketQuota(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	obs.setBucketQuota({
+		Bucket : bucketName,
+		StorageQuota : 1024 * 1024 * 1024 * 1024
+	}).then(function(result) {
+		obs.getBucketQuota({
+			Bucket : bucketName
+		}).then(function(result) {
+			if(result.CommonMsg.Status < 300){
+				console.log('Get bucket quota ' + result.InterfaceResult.StorageQuota + '\n');
+			}
+		} );
+	});
+}
+
+/*
+* Put/Get bucket versioning operations
+*/
+function doBucketVersioning(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	obs.getBucketVersioning({
+		Bucket : bucketName
+	}).then(function(result) {
+		if(result.CommonMsg.Status < 300){
+			console.log('Default bucket versioning config ' + result.InterfaceResult.VersionStatus + '\n');
+			obs.setBucketVersioning({
+				Bucket : bucketName,
+				VersionStatus : 'Enabled'
+			}).then(function(result) {
+				if(result.CommonMsg.Status < 300){
+					console.log('Enable bucket versioning finished.' + '\n');
+					obs.getBucketVersioning({
+						Bucket : bucketName
+					}).then(function(result) {
+						console.log('Current bucket versioning config ' + result.InterfaceResult.VersionStatus + '\n');
+					});
+				}
+			});
+		}
+	});
+}
+
+/*
+ * Put/Get bucket acl operations
+ */
+function doBucketAcl(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	obs.setBucketAcl({
+		Bucket : bucketName,
+		ACL : obs.enums.AclPublicRead
+	}).then(function(result) {
+		if(result.CommonMsg.Status < 300){
+			console.log('Set bucket ACL to public read finished. \n');
+			obs.getBucketAcl({
+				Bucket : bucketName
+			}).then(function(result) {
+				if(result.CommonMsg.Status < 300){
+					console.log('Get bucket ACL:');
+					console.log('\tOwner[ID]-->' + result.InterfaceResult.Owner.ID);
+					console.log('\tGrants:');
+					var i=0;
+					for(;i<result.InterfaceResult.Grants.length;i++){
+						console.log('\tGrant[' + i + ']:');
+						console.log('\tGrantee[ID]-->' + result.InterfaceResult.Grants[i]['Grantee']['ID']);
+						console.log('\tGrantee[URI]-->' + result.InterfaceResult.Grants[i]['Grantee']['URI']);
+						console.log('\tPermission-->' + result.InterfaceResult.Grants[i]['Permission']);
+					}
+					console.log('\n');
+					
+				}
+			});
+		}
+	});
+	
+}
+
+/*
+ * Put/Get/Delete bucket logging operations
+ */
+function doBucketLogging(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	obs.setBucketLogging({
+		Bucket: bucketName,
+		Agency: 'test',
+		LoggingEnabled:{
+			TargetBucket:bucketName,
+			TargetPrefix:'log-'
+		}
+	}).then(function(result) {
+		if(result.CommonMsg.Status < 300){
+			console.log('Set bucket logging finished.\n');
+			obs.getBucketLogging({
+				Bucket : bucketName
+			}).then(function(result) {
+				if(result.CommonMsg.Status < 300){
+					console.log('Get bucket logging:');
+					console.log('\tTargetBucket-->' + result.InterfaceResult.LoggingEnabled.TargetBucket);
+					console.log('\tTargetPrefix-->' + result.InterfaceResult.LoggingEnabled.TargetPrefix);
+					console.log('\n');
+					
+					obs.setBucketLogging({
+						Bucket : bucketName
+					}).then(function(result){
+						if(result.CommonMsg.Status < 300){
+							console.log('Delete bucket logging finished.\n');
+						}
+					});
+				}
+			});
+		}else{
+			console.log('Status-->' + result.CommonMsg.Status);
+			console.log('Code-->' + result.CommonMsg.Code);
+			console.log('Message-->' + result.CommonMsg.Message);
+		}
+	});
+}
+
+/*
+ * Get bucket metadata operation
+ */
+function getBucketMetadata(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	obs.getBucketMetadata({
+		Bucket : bucketName
+	}).then(function(result) {
+		if(result.CommonMsg.Status < 300){
+			console.log('Get bucket metadata:');
+			console.log('RequestId-->' + result.InterfaceResult.RequestId);
+			console.log('ObsVersion-->' + result.InterfaceResult.ObsVersion);
+			console.log('\n');
+		}
+	});
+}
+
+/*
+* Put/Get/Delete bucket lifecycle operations
+*/
+function doBucketLifecycle(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	obs.setBucketLifecycle({
+		Bucket : bucketName,
+		Rules:[
+				{ID:'delete obsoleted files',Prefix:'obsoleted/',Status:'Enabled',Expiration:{Days:10}},
+				{ID:'delete temporary files',Prefix:'temporary/',Status:'Enabled',Expiration:{Date:'2018-12-31T00:00:00Z'}},
+				{ID:'delete temp files',Prefix:'temp/',Status:'Enabled',NoncurrentVersionExpiration:{NoncurrentDays : 10}}
+		]
+	}).then(function(result){
+		if(result.CommonMsg.Status < 300){
+			console.log('Set bucket lifecyle finished.\n');
+			obs.getBucketLifecycle({
+				Bucket : bucketName
+			}).then(function(result){
+				if(result.CommonMsg.Status < 300){
+					console.log('Get bucket lifecyle:');
+					var i=0;
+					for(;i<result.InterfaceResult.Rules.length;i++){
+						console.log('Rule[' + i + ']:');
+						console.log('ID-->' + result.InterfaceResult.Rules[i]['ID']);
+						console.log('Prefix-->' + result.InterfaceResult.Rules[i]['Prefix']);
+						console.log('Status-->' + result.InterfaceResult.Rules[i]['Status']);
+						if(result.InterfaceResult.Rules[i]['Expiration']){
+							console.log('Expiration[Date]-->' + result.InterfaceResult.Rules[i]['Expiration']['Date']);
+							console.log('Expiration[Days]-->' + result.InterfaceResult.Rules[i]['Expiration']['Days']);
+						}
+						if(result.InterfaceResult.Rules[i]['NoncurrentVersionExpiration']){
+							console.log('NoncurrentVersionExpiration[Days]-->' + result.InterfaceResult.Rules[i]['NoncurrentVersionExpiration']['NoncurrentDays']);
+						}
+					}
+					console.log('\n');
+					
+					obs.deleteBucketLifecycle({
+						Bucket : bucketName
+					}).then(function(result) {
+						if(result.CommonMsg.Status < 300){
+							console.log('Delete bucket lifecyle finished.\n');
+						}
+					});
+				}
+			});
+		}
+	});
+}
+
+/*
+ * Put/Get/Delete bucket website operations
+ */
+function doBucketWebsite(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	obs.setBucketWebsite({
+		Bucket : bucketName,
+		IndexDocument:{Suffix:'index.html'},
+		ErrorDocument:{Key:'error.html'}
+	}).then(function(result)  {
+		if(result.CommonMsg.Status < 300){
+			console.log('Set bucket website finished.\n');
+			obs.getBucketWebsite({
+				Bucket : bucketName
+			}).then(function(result)  {
+				if(result.CommonMsg.Status < 300){
+					console.log('Get bucket website:');
+					console.log('\tIndexDocument[Suffix]-->' + result.InterfaceResult.IndexDocument['Suffix']);
+					console.log('\tErrorDocument[Key]-->' + result.InterfaceResult.ErrorDocument['Key']);
+					console.log('\n');
+					obs.deleteBucketWebsite({
+						Bucket : bucketName
+					}).then(function(result)  {
+						if(result.CommonMsg.Status < 300){
+							console.log('Delete bucket website finished.\n');
+							console.log('\n');
+						}
+					});
+				}
+			});
+		}
+	});
+}
+
+/*
+ * Put/Get/Delete bucket tagging operations
+ */
+function doBucketTagging(){
+	var bucketName =  document.getElementById('bucketname').value;
+	var obs = getObsClient();
+	obs.setBucketTagging({
+		Bucket : bucketName,
+		Tags : [{'Key':'key1','Value':'value1'}, {'Key':'key2', 'Value':'value2'}]
+		
+	}).then(function(result)  {
+		if(result.CommonMsg.Status < 300){
+			console.log('Set bucket tagging finished.\n');
+			obs.getBucketTagging({
+				Bucket : bucketName
+			}).then(function(result){
+				if(result.CommonMsg.Status < 300){
+					console.log('Get bucket tagging:');
+					result.InterfaceResult.Tags.forEach(function(tag){
+						console.log('Tag-->' + tag.Key + ':' + tag.Value);
+					});
+					console.log('\n');
+					obs.deleteBucketTagging({
+						Bucket : bucketName
+					}).then(function(result) {
+						if(result.CommonMsg.Status < 300){
+							console.log('Delete bucket tagging finished.\n');
+						}
+					});
+				}
+			});
+		}
+	});
+}
+ 
+
+
+
+</script>
+
+</html>
+
