@@ -2325,19 +2325,19 @@ const operations = {
                 'sentAs': 'meta-',
                 'withPrefix': true
             },
-            "ContentLanguage": {
-                "location": "header",
-                "sentAs": "Content-Language"
+            'ContentLanguage': {
+                'location': 'header',
+                'sentAs': 'Content-Language'
             },
-            "CacheControl": {
-                "location": "header",
-                "sentAs": "Cache-Control"
+            'CacheControl': {
+                'location': 'header',
+                'sentAs': 'Cache-Control'
             },
-            "ContentDisposition": {
+            'ContentDisposition': {
                 'location': 'header',
                 'sentAs': 'Content-Disposition'
             },
-            "Expires": {
+            'Expires': {
                 'location': 'header',
                 'sentAs': 'Expires'
             }
@@ -2368,16 +2368,51 @@ const operations = {
                 'location': 'header',
                 'sentAs': 'Access-Control-Request-Headers'
             },
-            "CacheControl": {"location": "header", "sentAs": "Cache-Control"},
-            "ContentDisposition": {"location": "header", "sentAs": "Content-Disposition"},
-            "ContentLanguage": {"location": "header", "sentAs": "Content-Language"},
-            "ContentEncoding": {"location": "header", "sentAs": "Content-Encoding"},
-            "ContentType": {"location": "header", "sentAs": "Content-Type"},
-            "Expires": {"location": "header", "sentAs": "Expires"},
-            "Metadata": {"shape": "Sy", "location": "header", "sentAs": "x-obs-meta-"},
-            "MetadataDirective": {"location": "header", "sentAs": "x-obs-metadata-directive"},
-            "StorageClass": {"location": "header", "sentAs": "x-obs-storage-class"},
-            "WebsiteRedirectLocation": { "location": "header","sentAs": "x-obs-website-redirect-location"},
+            'CacheControl': {
+                'location': 'header',
+                'sentAs': 'Cache-Control'
+            },
+            'ContentDisposition': {
+                'location': 'header',
+                'sentAs': 'Content-Disposition'
+            },
+            'ContentLanguage': {
+                'location': 'header',
+                'sentAs': 'Content-Language'
+            },
+            'ContentEncoding': {
+            	'location': 'header', 
+            	'sentAs': 'Content-Encoding'
+            },
+            'ContentType': {
+                'location': 'header',
+                'sentAs': 'Content-Type'
+            },
+            'Expires': {
+                'location': 'header',
+                'sentAs': 'Expires'
+            },
+            'Metadata': {
+            	'shape': 'Sy', 
+            	'location': 'header', 
+            	'sentAs': 'meta-',
+                'withPrefix': true
+            },
+            'MetadataDirective' : {
+				'location' : 'header',
+				'sentAs' : 'metadata-directive',
+				'withPrefix' : true
+			},
+            'StorageClass': {
+                'location': 'header',
+                'sentAs': 'storage-class',
+                'withPrefix': true
+            },
+            'WebsiteRedirectLocation': {
+                'location': 'header',
+                'sentAs': 'website-redirect-location',
+                'withPrefix': true
+            },
         }
     },
     'SetObjectMetadataOutput': {
@@ -2394,15 +2429,15 @@ const operations = {
                 'location': 'header',
                 'sentAs': 'Content-Type'
             },
-            "ContentLanguage": {
-                "location": "header",
-                "sentAs": "Content-Language"
+            'ContentLanguage': {
+                'location': 'header',
+                'sentAs': 'Content-Language'
             },
-            "CacheControl": {
-                "location": "header",
-                "sentAs": "Cache-Control"
+            'CacheControl': {
+                'location': 'header',
+                'sentAs': 'Cache-Control'
             },
-            "ContentDisposition": {
+            'ContentDisposition': {
                 'location': 'header',
                 'sentAs': 'Content-Disposition'
             },

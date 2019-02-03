@@ -124,7 +124,7 @@ const urlLib = {
 };
 
 const CONTENT_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-const OBS_SDK_VERSION = '3.0.2';
+const OBS_SDK_VERSION = '3.0.3';
 
 const mimeTypes = {
     '7z' : 'application/x-7z-compressed',
@@ -1177,9 +1177,9 @@ Utils.prototype.getRequest = function(methodName, serverback, bc, signatureConte
 		let bucketLocation = headers['x-amz-bucket-region'] || headers['x-obs-bucket-location'];
 		if (bucketLocation && regionDomains[bucketLocation]) {
             let regionServer = (this.isSecure ? 'https://' : 'http://') + regionDomains[bucketLocation];
-            let err = "get redirect code 3xx, need to redirect to" + regionServer;
-            log.runLog("error", methodName, err);
-            return bc("redirect", regionServer);
+            let err = 'get redirect code 3xx, need to redirect to' + regionServer;
+            log.runLog('error', methodName, err);
+            return bc('redirect', regionServer);
         } 
 		let err = 'get redirect code 3xx, but no location in headers';
 		log.runLog('error', methodName, err);
