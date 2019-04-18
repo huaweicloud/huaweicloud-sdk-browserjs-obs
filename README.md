@@ -1,3 +1,13 @@
+Version 3.1.3
+
+新特性：
+
+资料&demo：
+
+修复问题：
+1. 修复ObsClient.listObjects/ObsClient.listVersions/ObsClient.getObject/ObsClient.getObjectMetadata/ObsClient.copyObject/ObsClient.listParts/ObsClient.copyPart接口响应中返回的LastModified字段不是UTC标准格式的问题；
+
+-----------------------------------------------------------------------------------
 
 Version 3.1.2
 
@@ -23,4 +33,4 @@ Version 3.1.1
 2. 接口参考新增断点续传上传章节；
 3. 接口参考修改上传对象、追加上传、下载对象和上传段章节，新增进度回调函数参数；
 
-修复问题
+修复问题：
