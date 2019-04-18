@@ -1,6 +1,6 @@
 {
   "name": "esdk-obs-browserjs",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "description": "esdk-obs-browserjs",
   "engines": {
     "node": ">=0.12.7"
@@ -12,7 +12,12 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "babel-polyfill": "^6.26.0"
+    "babel-polyfill": "^6.26.0",
+    "js-base64": "^2.3.2",
+    "jssha": "^2.3.1",
+    "urijs": "^1.18.12",
+    "axios": "^0.16.2",
+    "js-md5": "0.6.0"
   },
   "devDependencies": {
     "babel-core": "^6.26.0",

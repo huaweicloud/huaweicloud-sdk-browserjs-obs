@@ -330,6 +330,46 @@ const corsRule = {
 	},
 };
 
+const functionGraphConfiguration = {
+	'type' : 'array',
+	'location' : 'xml',
+	'sentAs' : 'FunctionGraphConfiguration',
+	'items' : {
+		'type' : 'object',
+		'location' : 'xml',
+		'parameters' : {
+			'ID' : {
+				'sentAs' : 'Id'
+			},
+			'Filter' : {
+				'type' : 'object',
+				'parameters' : {
+					'FilterRules' : {
+						'wrapper' : 'Object',
+						'type' : 'array',
+						'sentAs' : 'FilterRule',
+						'items' : {
+							'type' : 'object',
+							'parameters' : {
+								'Name' : {},
+								'Value' : {}
+							}
+						}
+					}
+				}
+			},
+			'FunctionGraph' : {},
+	
+			'Event' : {
+				'type' : 'array',
+				'items' : {
+					'type' : 'adapter',
+				}
+			}
+		}
+	}	
+};
+
 const topicConfiguration = {
 		'type' : 'array',
 		'location' : 'xml',
@@ -1348,7 +1388,8 @@ const operations = {
 				'required' : true,
 				'location' : 'uri'
 			},
-			'TopicConfigurations' : topicConfiguration
+			'TopicConfigurations' : topicConfiguration,
+			'FunctionGraphConfigurations' : functionGraphConfiguration,
 		}
 	},
 
@@ -1373,7 +1414,8 @@ const operations = {
 				'location' : 'header',
 				'sentAs' : 'x-amz-request-id',
 			},
-			'TopicConfigurations' : topicConfiguration
+			'TopicConfigurations' : topicConfiguration,
+			'FunctionGraphConfigurations' : functionGraphConfiguration,
 		},
 	},
 

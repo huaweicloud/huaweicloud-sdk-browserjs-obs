@@ -124,7 +124,7 @@ const urlLib = {
 };
 
 const CONTENT_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-const OBS_SDK_VERSION = '3.1.1';
+const OBS_SDK_VERSION = '3.1.2';
 
 const mimeTypes = {
     '7z' : 'application/x-7z-compressed',
@@ -832,17 +832,35 @@ Utils.prototype.doNegotiation = function(funcName, param, callback, checkBucket,
 };
 
 Utils.prototype.exec = function(funcName, param, callback){
-	if(this.isSignatureNegotiation && funcName !== negotiateMethod){
+	var that = this;
+	if(that.isSignatureNegotiation && funcName !== negotiateMethod){
 		if(funcName === 'ListBuckets'){
-			this.doNegotiation(funcName, param, callback, false, false, false);
+			that.doNegotiation(funcName, param, callback, false, false, false);
 		}else if(funcName === 'CreateBucket'){
-			this.doNegotiation(funcName, param, callback, false, true, false);
+			let _callback = function(err, result){
+				if(!err && result.CommonMsg.Status === 400 && 
+						result.CommonMsg.Message === 'Unsupported Authorization Type' && 
+						param.signatureContext && 
+						param.signatureContext.signature === 'v2'){
+					param.signatureContext = v2SignatureContext;
+					let opt = that.makeParam(funcName, param);
+					if('err' in opt){
+						return callback(opt.err, null);
+					}
+					opt.signatureContext = param.signatureContext;
+					that.sendRequest(funcName, opt, callback);
+					return;
+				}
+				callback(err, result);
+			};
+			
+			that.doNegotiation(funcName, param, _callback, false, true, false);
 		}else{
-			this.doNegotiation(funcName, param, callback, true, true, true);
+			that.doNegotiation(funcName, param, callback, true, true, true);
 		}
 		return;
 	}
-	this.doExec(funcName, param, callback);
+	that.doExec(funcName, param, callback);
 };
 
 

@@ -195,7 +195,7 @@ module.exports = function(grunt) {
 					dist :{
 						cwd : '.',
 						dest : '<%= config.app.dist %>/<%= pkg.name %>-<%= pkg.version %>.zip',
-				    	src : ['<%= config.app.dist %>/index.html', '<%= config.app.dist %>/source/**', 'examples/*.html', '<%= config.app.dist %>/<%= pkg.name %>-<%= pkg.version %>.min.js', '<%= config.app.dist %>/<%= pkg.name %>-without-polyfill-<%= pkg.version %>.min.js', 'README.txt'],
+				    	src : ['<%= config.app.dist %>/index.html', '<%= config.app.dist %>/source/**', 'examples/*.html', '<%= config.app.dist %>/<%= pkg.name %>-<%= pkg.version %>.min.js', '<%= config.app.dist %>/<%= pkg.name %>-without-polyfill-<%= pkg.version %>.min.js'],
 				    	compression: 'DEFLATE'
 					}
 				},

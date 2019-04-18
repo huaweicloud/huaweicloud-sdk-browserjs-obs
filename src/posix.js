@@ -63,7 +63,7 @@
 			var that = this;
 			param = param || {};
 			var _callback = wrapCallback(callback, that.log, 'dropFolder');
-			var eventCallback = wrapCallback(param.EventCallback);
+			var eventCallback = wrapEventCallback(param.EventCallback);
 			var taskNum = param.TaskNum || 1;
 			var runningTask = 0;
 			var taskQueue = [];
@@ -80,7 +80,8 @@
 					done(ctx);
 					return;
 				}
-				taskQueue.push(function(){
+				
+				var task = function(){
 					runningTask++;
 					that.dropFile({
 						Bucket : ctx.bucket,
@@ -92,18 +93,21 @@
 						if(err){
 							eventCallback('dropFileFailed', key, err);
 							ctx.subDeleted = false;
-							return;
-						}
-						if(result.CommonMsg.Status >= 300){
+						}else if(result.CommonMsg.Status >= 300){
 							eventCallback('dropFileFailed', key, result);
 							ctx.subDeleted = false;
-							return;
+						}else{
+							eventCallback('dropFileSucceed', key, result);
 						}
-						eventCallback('dropFileSucceed', key, result);
 						done(ctx);
 					});
-				});
-				doNext();
+				};
+				
+				if(runningTask < taskNum){
+					task();
+				}else{
+					taskQueue.push(task);
+				}
 			};
 			
 			var delimiter = '/';
@@ -133,6 +137,11 @@
 					
 					ctx.total += result.InterfaceResult.Contents.length;
 					ctx.total += result.InterfaceResult.CommonPrefixes.length;
+					if(ctx.total === 0){
+						done(ctx);
+						return;
+					}
+					
 					ctx.isTruncated = result.InterfaceResult.IsTruncated === 'true';
 					
 					for(let j=0;j<result.InterfaceResult.CommonPrefixes.length;j++){
@@ -148,8 +157,6 @@
 					if(ctx.isTruncated){
 						recursiveDropByFolder(ctx, bucket, prefix, result.InterfaceResult.NextMarker, done);
 					}
-					
-					done(ctx);
 				});
 			};
 			
