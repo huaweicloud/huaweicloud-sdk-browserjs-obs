@@ -124,7 +124,7 @@ const urlLib = {
 };
 
 const CONTENT_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-const OBS_SDK_VERSION = '3.0.3';
+const OBS_SDK_VERSION = '3.1.1';
 
 const mimeTypes = {
     '7z' : 'application/x-7z-compressed',
@@ -232,7 +232,7 @@ const allowedResourceParameterNames = [
 	'inventory',
 	'acl',
 	'backtosource',
-	'metadata',
+	//'metadata',
     'policy',
     'torrent',
     'logging',
@@ -533,6 +533,7 @@ function Utils(log_in) {
 	this.timeout = 60;
 	this.obsSdkVersion = OBS_SDK_VERSION;
 	this.isCname = false;
+	this.bucketEventEmitters = {};
 }
 
 Utils.prototype.mineTypes = encodeURIWithSafe;
@@ -749,7 +750,9 @@ Utils.prototype.doExec = function(funcName, param, callback){
 };
 
 Utils.prototype.doNegotiation = function(funcName, param, callback, checkBucket, checkCache, setCache){
-	if(checkCache){
+	let o = null;
+	let that = this;
+	if(checkCache && param.Bucket){
 		let item = this.bucketSignatureCache[param.Bucket];
 		if(item && item.signatureContext && item.expireTime > new Date().getTime()){
 			param.signatureContext = item.signatureContext;
@@ -760,14 +763,47 @@ Utils.prototype.doNegotiation = function(funcName, param, callback, checkBucket,
 			opt.signatureContext = item.signatureContext;
 			return this.sendRequest(funcName, opt, callback);
 		}
+		
+		o = this.bucketEventEmitters[param.Bucket];
+		if(!o){
+			o = {
+				s : 0,
+				n : function(){
+					while(this.e && this.e.length > 0){
+						this.e.shift()();
+					}
+				}
+			};
+			this.bucketEventEmitters[param.Bucket] = o;
+		}
+		
+		if(o.s){
+			o.e.push(function(){
+				that.doNegotiation(funcName, param, callback, checkBucket, checkCache, setCache);
+			});
+			return;
+		}
+			
+		o.e = [];
+		o.s = 1;
 	}
-	let that = this;
+	
 	this.doExec(negotiateMethod, checkBucket ? {Bucket:param.Bucket} : {},  function(err, result){
 		if(err){
-			return callback(err, null);
+			callback(err, null);
+			if(o){
+				o.s = 0;
+				o.n();
+			}
+			return;
 		}
 		if((checkBucket && result.CommonMsg.Status === 404) || result.CommonMsg.Status >= 500){
-			return callback(err, result);
+			callback(err, result);
+			if(o){
+				o.s = 0;
+				o.n();
+			}
+			return;
 		}
 		
 		var signatureContext = v2SignatureContext;
@@ -779,6 +815,11 @@ Utils.prototype.doNegotiation = function(funcName, param, callback, checkBucket,
 				signatureContext : signatureContext,
 				expireTime : new Date().getTime() + 15 + (Math.ceil(Math.random()*5)) * 60 * 1000
 			};
+		}
+		
+		if(o){
+			o.s = 0;
+			o.n();
 		}
 		param.signatureContext = signatureContext;
 		var opt = that.makeParam(funcName, param);
@@ -941,6 +982,7 @@ Utils.prototype.makeParam = function(methodName, param){
 	var xml = '';
 	var exheaders = {};
 	var opt = {};
+	opt.$requestParam = param;
 	
 	if ('urlPath' in model){
 		urlPath += '?';
@@ -1183,7 +1225,7 @@ Utils.prototype.getRequest = function(methodName, serverback, bc, signatureConte
         } 
 		let err = 'get redirect code 3xx, but no location in headers';
 		log.runLog('error', methodName, err);
-		return bc(err, null);
+		return bc(new Error(err), null);
 	} 
 		
 	if(serverback.status < 300){
@@ -1199,7 +1241,7 @@ Utils.prototype.getRequest = function(methodName, serverback, bc, signatureConte
 		if(body && ('data' in model)){
 			if(model.data.type === 'xml'){
 				let that = this;
-				makeObjFromXml(body, function(err,result){
+				makeObjFromXml(body, function(err, result){
 					if(err){
 						log.runLog('error', methodName, 'change xml to json err [' + headerTostring(err) + ']' );
 						return bc(err, null);
@@ -1369,6 +1411,23 @@ Utils.prototype.makeRequest = function(methodName, opt, bc){
 		responseType = String(opt.dstFile);
 	}
 	
+	var start = nowDate.getTime();
+	var onUploadProgress = null;
+	var onDownloadProgress = null;
+	
+	if(isFunction(opt.ProgressCallback)){
+		let progressListener = function(event){
+			if(event.lengthComputable){
+				opt.ProgressCallback(event.loaded, event.total, (new Date().getTime() - start) / 1000);
+			}
+		};
+		if(method === 'GET'){
+			onDownloadProgress = progressListener;
+		}else if(method === 'PUT' || method === 'POST'){
+			onUploadProgress = progressListener;
+		}
+	}
+	
 	var reopt = {
 		method : method,
 		baseURL : _isSecure ? 'https://' + this.urlPrefix + host + ':' + port : 'http://' + this.urlPrefix + host + ':' + port,
@@ -1381,9 +1440,13 @@ Utils.prototype.makeRequest = function(methodName, opt, bc){
 		maxRedirects : 0,
 		responseType : responseType,
 		data : body,
-		timeout : this.timeout * 1000
+		timeout : this.timeout * 1000,
+		onUploadProgress : onUploadProgress,
+		onDownloadProgress : onDownloadProgress,
+		cancelToken : new axios.CancelToken(function(cancelHook){
+			opt.$requestParam.cancelHook = cancelHook;
+		})
 	};
-	var start = nowDate.getTime();
 	var that = this;
 	if(opt.srcFile && window.FileReader && ((opt.srcFile instanceof window.File) || (opt.srcFile instanceof window.Blob))){
 		let srcFile = opt.srcFile;
@@ -1410,7 +1473,11 @@ Utils.prototype.makeRequest = function(methodName, opt, bc){
 			});
 		};
 		fr.onerror = function(e){
-			bc(event.target.error, null);
+			bc(e.target.error, null);
+		};
+		
+		fr.onabort = function(e){
+			bc(e.target.error, null);
 		};
 		
 		fr.readAsArrayBuffer(srcFile);
@@ -1430,7 +1497,7 @@ Utils.prototype.makeRequest = function(methodName, opt, bc){
 
 Utils.prototype.sendRequest = function(funcName, opt, backcall){
 	var that = this;
-	that.makeRequest(funcName,opt, function(err,msg){
+	that.makeRequest(funcName, opt, function(err, msg){
 		if(err === 'redirect' && msg){
 			var uri = urlLib.parse(msg);
 			opt.headers.Host = uri.hostname;

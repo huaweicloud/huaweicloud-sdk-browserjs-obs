@@ -1565,6 +1565,9 @@ const operations = {
 			},
 			'SourceFile' : {
 				'type' : 'srcFile',
+			},
+			'ProgressCallback' : {
+				'type' : 'plain'
 			}
 		},
 	},
@@ -1714,6 +1717,9 @@ const operations = {
 			},
 			'SourceFile' : {
 				'type' : 'srcFile',
+			},
+			'ProgressCallback' : {
+				'type' : 'plain'
 			}
 		},
 	},
@@ -1839,6 +1845,9 @@ const operations = {
 				'sentAs' : 'server-side-encryption-customer-key',
 				'type' : 'password',
 				'withPrefix' : true
+			},
+			'ProgressCallback' : {
+				'type' : 'plain'
 			}
 		}
 	},
@@ -2922,7 +2931,10 @@ const operations = {
 				'sentAs' : 'server-side-encryption-customer-key',
 				'type' : 'password',
 				'withPrefix' : true
-			}
+			},
+			'ProgressCallback' : {
+				'type' : 'plain'
+			},
 		},
 	},
 	'UploadPartOutput' : {

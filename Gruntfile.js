@@ -37,15 +37,15 @@ module.exports = function(grunt) {
 		    	
 		    	reporter: 'reporter',
 		    	
-		    	js:  ['src/base64.js', 'src/sha.js', 'src/URI.js', 'src/axios.js', 'src/log.js', 'src/v2Model.js', 'src/obsModel.js', 'src/xml2js.js', 'src/md5.js' ,'src/utils.js', 'src/enums.js', 'src/obs.js'],
+		    	js:  ['src/base64.js', 'src/sha.js', 'src/URI.js', 'src/axios.js', 'src/log.js', 'src/v2Model.js', 'src/obsModel.js', 'src/xml2js.js', 'src/md5.js' ,'src/utils.js', 'src/enums.js', 'src/posix.js', 'src/resumable.js', 'src/obs.js'],
+		    	
+		    	lintJs : ['src/log.js', 'src/v2Model.js', 'src/obsModel.js' ,'src/utils.js', 'src/enums.js', 'src/posix.js', 'src/resumable.js', 'src/obs.js'],
 		    	
 		    	view: 'src/*.html',
 		    	
 		    	conf: 'Gruntfile.js',
 		    	
 		    	minJs: 'dist/' + pkgName + '-' + sdkVersion + '.min.js'
-		    	
-		    		
 		    }
 		    
 	};
@@ -76,7 +76,7 @@ module.exports = function(grunt) {
 
 				jshint : {
 					dist : {
-						src : '<%= config.app.js %>',
+						src : '<%= config.app.lintJs %>',
 						options : {
 							jshintrc : true
 						}
@@ -162,26 +162,32 @@ module.exports = function(grunt) {
 					
 					dev: {
 						files : [
-						{
-							expand : true,
-							cwd : '.',
-							flatten: false,
-							src : ['<%= config.lib.dev %>'],
-							dest : '<%= config.app.src %>'
-						}
+							{
+								expand : true,
+								cwd : '.',
+								flatten: false,
+								src : ['<%= config.lib.dev %>'],
+								dest : '<%= config.app.src %>'
+							}
 						]
 					},
 					
 					dist : {
 						files : [
-								{
-									expand : true,
-									dot : true,
-									cwd : '<%= config.app.src %>',
-									dest : '<%= config.app.dist %>',
-									src : '*.{ico,png,txt,html}'
-								}
-							]
+							{
+								expand : true,
+								dot : true,
+								cwd : '<%= config.app.src %>',
+								dest : '<%= config.app.dist %>',
+								src : '*.{ico,png,txt,html}'
+							},
+							{
+								expand : true,
+								cwd : '.',
+								dest : '<%= config.app.dist %>/source',
+								src : ['<%= config.app.js %>', 'package.json', 'Gruntfile.js', '<%= config.app.view %>'],
+							},
+						]
 					}
 				},
 				
@@ -189,7 +195,7 @@ module.exports = function(grunt) {
 					dist :{
 						cwd : '.',
 						dest : '<%= config.app.dist %>/<%= pkg.name %>-<%= pkg.version %>.zip',
-				    	src : ['<%= config.app.dist %>/index.html', 'examples/*.html', '<%= config.app.dist %>/<%= pkg.name %>-<%= pkg.version %>.min.js', '<%= config.app.dist %>/<%= pkg.name %>-without-polyfill-<%= pkg.version %>.min.js', 'README.txt'],
+				    	src : ['<%= config.app.dist %>/index.html', '<%= config.app.dist %>/source/**', 'examples/*.html', '<%= config.app.dist %>/<%= pkg.name %>-<%= pkg.version %>.min.js', '<%= config.app.dist %>/<%= pkg.name %>-without-polyfill-<%= pkg.version %>.min.js', 'README.txt'],
 				    	compression: 'DEFLATE'
 					}
 				},
@@ -248,6 +254,7 @@ module.exports = function(grunt) {
 				}
 			});
 	
+	grunt.registerTask('dev', ['jshint:dist']);
 	
 	grunt.registerTask('inject', ['copy:dev','injector:dev' ]);
 

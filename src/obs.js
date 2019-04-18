@@ -1,12 +1,12 @@
 ﻿(function (root, factory) {
   'use strict';
   if(typeof define === 'function' && define.amd){
-	  define('ObsClient', ['utils', 'log', 'enums'], factory);
+	  define('ObsClient', ['utils', 'log', 'enums', 'posix', 'resumable'], factory);
   }else{
-	  root['obs'] = factory(root['utils'], root['log'], root['enums']);
+	  root['obs'] = factory(root['utils'], root['log'], root['enums'], root['posix'], root['resumable']);
 	  root['ObsClient'] = root['obs'];
   }
-})(this ? this : window, function(Utils, LogUtil, enums){
+})(this ? this : window, function(Utils, LogUtil, enums, posix, resumable){
 
 'use strict';
 
@@ -83,7 +83,7 @@ ObsClient.prototype.putObject = function(param, callback){
 	if(('Body' in param) && ('SourceFile' in param)){
 		let err = 'the input body and sourcefile exist at same time,please specify one of eigther a string or file to be send!';
 		this.log.runLog('error', 'PutObject', err);
-		return callback(err, null);
+		return callback(new Error(err), null);
 	}
 	
 	if(!('ContentType' in param)){
@@ -106,7 +106,7 @@ ObsClient.prototype.appendObject = function(param, callback){
 		if(this.log.isLevelEnabled('error')){
 			this.log.runLog('error', 'PutObject', err);
 		}
-		return callback(err, null);
+		return callback(new Error(err), null);
 	}
 	
 	if(!('ContentType' in param)){
@@ -172,10 +172,13 @@ ObsClient.prototype.uploadPart = function(param, callback){
 	if(('Body' in param) && ('SourceFile' in param)){
 		let err = 'the input body and sourcefile exist at same time,please specify one of eigther a string or file to be send!';
 		this.log.runLog('error', 'UploadPart', err);
-		return callback(err, null);
+		return callback(new Error(err), null);
 	}
 	this.exec('UploadPart', param, callback);
 };
+
+posix.extend(ObsClient);
+resumable.extend(ObsClient);
 
 function isFunction(obj){
 	return Object.prototype.toString.call(obj) === '[object Function]';
