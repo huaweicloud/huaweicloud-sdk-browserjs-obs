@@ -124,7 +124,7 @@ const urlLib = {
 };
 
 const CONTENT_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-const OBS_SDK_VERSION = '3.1.2';
+const OBS_SDK_VERSION = '3.1.3';
 
 const mimeTypes = {
     '7z' : 'application/x-7z-compressed',
@@ -232,7 +232,6 @@ const allowedResourceParameterNames = [
 	'inventory',
 	'acl',
 	'backtosource',
-	//'metadata',
     'policy',
     'torrent',
     'logging',
@@ -266,7 +265,8 @@ const allowedResourceParameterNames = [
     'response-content-disposition',
     'response-content-encoding',
     'x-image-process',
-    'x-oss-process'
+    'x-oss-process',
+	'encryption'
 ];
 
 
@@ -970,8 +970,6 @@ Utils.prototype.buildObject = function(model, obj, key, opt){
 						}
 					}
 					opt[key] = arr;
-				}else if(model[key].type === 'date'){
-					opt[key] = utcToLocaleString(obj[sentAs]['#text']);
 				}else{
 					opt[key] = obj[sentAs]['#text'];
 				}
@@ -1259,7 +1257,7 @@ Utils.prototype.getRequest = function(methodName, serverback, bc, signatureConte
 		if(body && ('data' in model)){
 			if(model.data.type === 'xml'){
 				let that = this;
-				makeObjFromXml(body, function(err, result){
+				return makeObjFromXml(body, function(err, result){
 					if(err){
 						log.runLog('error', methodName, 'change xml to json err [' + headerTostring(err) + ']' );
 						return bc(err, null);
@@ -1276,8 +1274,12 @@ Utils.prototype.getRequest = function(methodName, serverback, bc, signatureConte
 							}
 						}
 					}
+					
+					doLog();
 				});
-			}else if(model.data.type === 'body'){
+			}
+			
+			if(model.data.type === 'body'){
 				for (let key in obj){
 					if(obj[key].location === 'body'){
 						opt.InterfaceResult[key] = body;

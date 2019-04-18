@@ -23,6 +23,25 @@ const owner = {
 	}
 };
 
+const bucketEncryptionRule = {
+	'type': 'object',
+	'location': 'xml',
+	'sentAs': 'Rule',
+	'parameters': {
+		'ApplyServerSideEncryptionByDefault': {
+			'type': 'object',
+			'sentAs': 'ApplyServerSideEncryptionByDefault',
+			'parameters': {
+				'SSEAlgorithm': {
+					'sentAs': 'SSEAlgorithm'
+				},
+				'KMSMasterKeyID': {
+					'sentAs': 'KMSMasterKeyID'
+				}
+			}
+		}
+	}
+};
 
 const InventoryConfiguration = {
 		'type': 'object',
@@ -740,7 +759,6 @@ const operations = {
 							'sentAs' : 'Key',
 						},
 						'LastModified' : {
-							'type' : 'date',
 							'sentAs' : 'LastModified',
 						},
 						'ETag' : {
@@ -859,7 +877,6 @@ const operations = {
 							'sentAs' : 'IsLatest',
 						},
 						'LastModified' : {
-							'type' : 'date',
 							'sentAs' : 'LastModified',
 						},
 						'ETag' : {
@@ -895,7 +912,6 @@ const operations = {
 							'sentAs' : 'IsLatest',
 						},
 						'LastModified' : {
-							'type' : 'date',
 							'sentAs' : 'LastModified',
 						},
 						'Owner' : owner
@@ -1949,7 +1965,6 @@ const operations = {
 				'withPrefix' : true
 			},
 			'LastModified' : {
-				'type' : 'date',
 				'location' : 'header',
 				'sentAs' : 'Last-Modified',
 			},
@@ -2182,7 +2197,6 @@ const operations = {
 				'sentAs' : 'ETag',
 			},
 			'LastModified' : {
-				'type' : 'date',
 				'location' : 'xml',
 				'sentAs' : 'LastModified',
 			},
@@ -2285,7 +2299,6 @@ const operations = {
                 'withPrefix': true
             },
             'LastModified': {
-                'type': 'date',
                 'location': 'header',
                 'sentAs': 'Last-Modified'
             },
@@ -3086,7 +3099,6 @@ const operations = {
 							'sentAs' : 'PartNumber',
 						},
 						'LastModified' : {
-							'type' : 'date',
 							'sentAs' : 'LastModified',
 						},
 						'ETag' : {
@@ -3165,7 +3177,6 @@ const operations = {
 		},
 		'parameters' : {
 			'LastModified' : {
-				'type' : 'date',
 				'location' : 'xml',
 				'sentAs' : 'LastModified',
 			},
@@ -3324,11 +3335,72 @@ const operations = {
 			'Rules': {
 				'type': 'array',
 				'location': 'xml',
-				'sentAs': 'ListInventoryConfiguration',
+				'sentAs': 'InventoryConfiguration',
 				'items': {
 					'type': 'object',
 					'parameters': {
-						'InventoryConfiguration': InventoryConfiguration
+						'Id': {
+							'sentAs': 'Id',
+
+						},
+						'IsEnabled': {
+							'sentAs': 'IsEnabled',
+
+						},
+						'Filter': {
+							'type': 'object',
+							'sentAs': 'Filter',
+							'parameters': {
+								'Prefix': {
+									'sentAs': 'Prefix'
+								}
+							}
+						},
+						'Destination': {
+							'type': 'object',
+							'sentAs': 'Destination',
+							'parameters': {
+								'Format': {
+									'sentAs': 'Format'
+								},
+								'Bucket': {
+									'sentAs': 'Bucket'
+								},
+								'Prefix': {
+									'sentAs': 'Prefix'
+								}
+
+							}
+						},
+						'Schedule': {
+							'type': 'object',
+							'sentAs': 'Schedule',
+							'parameters': {
+								'Frequency': {
+									'sentAs': 'Frequency'
+								}
+							}
+						},
+						'IncludedObjectVersions': {
+							'sentAs': 'IncludedObjectVersions'
+						},
+						'OptionalFields': {
+							'type': 'object',
+							'location': 'xml',
+							'sentAs': 'OptionalFields',
+							'parameters': {
+								'Field': {
+									'type': 'array',
+									'sentAs': 'Field',
+									'items':{
+										'type': 'string'
+									}
+								}
+							}
+						},
+						'LastExportTime':{
+							'sentAs': 'LastExportTime',
+						}
 					},
 
 				}
@@ -3339,9 +3411,6 @@ const operations = {
 	'SetBucketInventory': {
 		'httpMethod': 'PUT',
 		'urlPath': 'inventory',
-		'data': {
-			'xmlRoot': 'InventoryConfiguration'
-		},
 		'parameters': {
 			'Bucket': {
 				'required': true,
@@ -3352,7 +3421,7 @@ const operations = {
 				'location': 'urlPath',
 				'sentAs': 'id'
 			},
-			'InventoryConfiguration': InventoryConfiguration,
+			'InventoryConfiguration': InventoryConfiguration
 
 		},
 	},
@@ -3392,6 +3461,87 @@ const operations = {
 		},
 
 	},
+	'GetBucketEncryption' : {
+		'httpMethod' : 'GET',
+		'urlPath' : 'encryption',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			}
+		}
+	},
+	'GetBucketEncryptionOutput' : {
+		'data' : {
+			'type' : 'xml',
+			'xmlRoot' : 'ServerSideEncryptionConfiguration'
+		},
+		'parameters' : {
+			'Rule' : {
+				'type': 'object',
+				'location': 'xml',
+				'sentAs': 'Rule',
+					
+				'parameters': {
+					'ApplyServerSideEncryptionByDefault': {
+						'type': 'object',
+						'sentAs': 'ApplyServerSideEncryptionByDefault',
+						'parameters': {
+							'SSEAlgorithm': {
+								'sentAs': 'SSEAlgorithm'
+							},
+							'KMSMasterKeyID': {
+								'sentAs': 'KMSMasterKeyID'
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	'SetBucketEncryption': {
+		'httpMethod' : 'PUT',
+		'urlPath' : 'encryption',
+		'data' : {
+			'xmlRoot' : 'ServerSideEncryptionConfiguration'
+		},
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			},
+			'Rule' : bucketEncryptionRule
+		}
+	},
+	'SetBucketEncryptionOutput': {
+		'data' : {
+			'type' : 'xml',
+			'xmlRoot' : 'ServerSideEncryptionConfiguration'
+		},
+		'parameters' : {
+			'Rule' : bucketEncryptionRule
+		}
+	},
+	'DeleteBucketEncryption': {
+		'httpMethod': 'DELETE',
+		'urlPath': 'encryption',
+		'parameters': {
+			'Bucket': {
+				'required': true,
+				'location': 'uri'
+			}
+		}
+	},
+	'DeleteBucketEncryptionOutput': {
+		'data' : {
+			'type' : 'xml',
+			'xmlRoot' : 'ServerSideEncryptionConfiguration'
+		},
+		'parameters' : {
+			'Rule' : bucketEncryptionRule
+		}
+	}
+	
 
 };
 

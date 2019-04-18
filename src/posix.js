@@ -121,12 +121,14 @@
 			};
 			
 			var recursiveDropByFolder = function(ctx, bucket, prefix, marker, done){
+				runningTask++;
 				that.listObjects({
 					Bucket : bucket,
 					Prefix : prefix,
 					Delimiter : delimiter,
 					Marker : marker,
 				}, function(err, result){
+					runningTask--;
 					if(err){
 						return _callback(err);
 					}
@@ -146,7 +148,13 @@
 					
 					for(let j=0;j<result.InterfaceResult.CommonPrefixes.length;j++){
 						let subFolder = checkPrefix(result.InterfaceResult.CommonPrefixes[j]['Prefix']);
-						recursiveDropByFolder({total : 0, finished : 0, isTruncated : false, bucket : bucket, subDeleted : true}, bucket, subFolder, null, createDone(subFolder, ctx, done));
+						if(runningTask < taskNum){
+							recursiveDropByFolder({total : 0, finished : 0, isTruncated : false, bucket : bucket, subDeleted : true}, bucket, subFolder, null, createDone(subFolder, ctx, done));
+						}else{
+							taskQueue.push(function(){
+								recursiveDropByFolder({total : 0, finished : 0, isTruncated : false, bucket : bucket, subDeleted : true}, bucket, subFolder, null, createDone(subFolder, ctx, done));
+							});
+						}
 					}
 					
 					for(let j=0;j<result.InterfaceResult.Contents.length;j++){
@@ -155,7 +163,13 @@
 					}
 					
 					if(ctx.isTruncated){
-						recursiveDropByFolder(ctx, bucket, prefix, result.InterfaceResult.NextMarker, done);
+						if(runningTask < taskNum){
+							recursiveDropByFolder(ctx, bucket, prefix, result.InterfaceResult.NextMarker, done);
+						}else{
+							taskQueue.push(function(){
+								recursiveDropByFolder(ctx, bucket, prefix, result.InterfaceResult.NextMarker, done);
+							});
+						}
 					}
 				});
 			};
