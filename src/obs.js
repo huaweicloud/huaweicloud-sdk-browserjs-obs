@@ -229,6 +229,11 @@ ObsClient.prototype.exec = function(funcName, param, callback){
 			return;
 		}
 		_callback.$called = true;
+		
+		if(err && !(err instanceof Error)){
+			err = new Error(err);
+		}
+		
 		_log.runLog('debug', funcName, 'ObsClient cost ' +  (new Date().getTime() - start) + ' ms');
 		callback(err, msg);
 	};

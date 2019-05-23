@@ -1,3 +1,21 @@
+﻿
+Version 3.1.4
+
+新特性：
+1. 所有接口请求对象新增RequestDate字段（Date|String），用于自定义请求时间；
+2. 所有响应公共结果对象中新增Id2和Indicator字段，用于问题定位；
+3. 升级底层依赖，对于不支持window.FileReader的浏览器也可以正常上传；
+
+资料&demo：
+
+修复问题：
+
+1. 【功能】对必选字段增加非空字符串/非null/非undefined的校验；
+2. 【性能】修复ObsClient.uploadFile/ObsClient.uploadPart上传大文件时，内存占用过高导致浏览器崩溃的问题；
+3. 【功能】使用ObsClient.putObject/ObsClient.uploadFile/ObsClient.uploadPart上传文件时对于不支持window.Blob和window.File的浏览器直接返回错误；
+
+-----------------------------------------------------------------------------------
+
 Version 3.1.3
 
 新特性：

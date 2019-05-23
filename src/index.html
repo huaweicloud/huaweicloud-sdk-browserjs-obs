@@ -177,6 +177,40 @@
 			uploadPartStatus.currentPartIndex++;
 			globalContext.currentTaskNum++;
 			
+			var getCallback = function(partNumber){
+				return function(result) {
+					globalContext.currentTaskNum--;
+					doUploadPart(obsClient, uploadPartStatus);
+					if(result.CommonMsg.Status < 300){
+						console.log('Part:' + partNumber + ' finished, etag:' + result.InterfaceResult.ETag);
+						uploadPartStatus.parts.push({PartNumber : partNumber, ETag : result.InterfaceResult.ETag});
+						if(uploadPartStatus.parts.length === uploadPartStatus.partCount){
+							var _parts = uploadPartStatus.parts.sort(function(a, b) {
+								if(a.PartNumber >= b.PartNumber){
+									return 1;
+								}
+								return -1;
+							});
+							obsClient.completeMultipartUpload({
+								Bucket:uploadPartStatus.bucketName,
+								Key:uploadPartStatus.objectKey,
+								UploadId: uploadPartStatus.uploadId,
+								Parts: _parts
+							}, function(err, result){
+								if(!err && result.CommonMsg.Status < 300){
+									console.log('Complete to upload multiparts finished.\n');
+								}else{
+									var msg = err || result.CommonMsg.Code;
+									console.error(msg);
+								}
+							});
+						}
+					}else{
+						console.error(result.CommonMsg.Code);
+					}
+				}
+			};
+			
 			obsClient.uploadPart({
 				Bucket:uploadPartStatus.bucketName,
 				Key:uploadPartStatus.objectKey,
@@ -185,37 +219,7 @@
 				SourceFile: uploadPartStatus.file,
 				Offset : offset,
 				PartSize : currPartSize
-			}).then(function(result) {
-				globalContext.currentTaskNum--;
-				doUploadPart(obsClient, uploadPartStatus);
-				if(result.CommonMsg.Status < 300){
-					console.log('Part:' + partNumber + ' finished, etag:' + result.InterfaceResult.ETag);
-					uploadPartStatus.parts.push({PartNumber : partNumber, ETag : result.InterfaceResult.ETag});
-					if(uploadPartStatus.parts.length === uploadPartStatus.partCount){
-						var _parts = uploadPartStatus.parts.sort(function(a, b) {
-							if(a.PartNumber >= b.PartNumber){
-								return 1;
-							}
-							return -1;
-						});
-						obsClient.completeMultipartUpload({
-							Bucket:uploadPartStatus.bucketName,
-							Key:uploadPartStatus.objectKey,
-							UploadId: uploadPartStatus.uploadId,
-							Parts: _parts
-						}, function(err, result){
-							if(!err && result.CommonMsg.Status < 300){
-								console.log('Complete to upload multiparts finished.\n');
-							}else{
-								var msg = err || result.CommonMsg.Code;
-								console.error(msg);
-							}
-						});
-					}
-				}else{
-					console.error(result.CommonMsg.Code);
-				}
-			}).catch(function(err){
+			}).then(getCallback(partNumber)).catch(function(err){
 				console.error('err:' + err);
 			});
 		}

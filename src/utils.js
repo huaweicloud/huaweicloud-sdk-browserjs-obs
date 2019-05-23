@@ -124,7 +124,7 @@ const urlLib = {
 };
 
 const CONTENT_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-const OBS_SDK_VERSION = '3.1.3';
+const OBS_SDK_VERSION = '3.1.4';
 
 const mimeTypes = {
     '7z' : 'application/x-7z-compressed',
@@ -1009,20 +1009,23 @@ Utils.prototype.makeParam = function(methodName, param){
 		if(key === 'Bucket' && this.isCname){
 			continue;
 		}
-		if (meta.required && !(key in param)){
+		
+		let _value = param[key];
+		
+		if (meta.required && (_value === null || _value === undefined || (Object.prototype.toString.call(_value) === '[object String]' && _value === ''))){
 			opt.err = key + ' is a required element!';
 			this.log.runLog('error', methodName, opt.err);
 			return opt;
 		}
 		
-		if(param[key] !== null && param[key] !== undefined){
+		if(_value !== null && _value !== undefined){
 			if(meta.type === 'srcFile' || meta.type === 'dstFile'){
-				opt[meta.type] = param[key];
+				opt[meta.type] = _value;
 				continue;
 			}
 			
 			if(meta.type === 'plain'){
-				opt[key] = param[key];
+				opt[key] = _value;
 			}
 			
 			let sentAs = meta.sentAs || key;
@@ -1035,53 +1038,53 @@ Utils.prototype.makeParam = function(methodName, param){
 				if(uri !== '/'){
 					uri += '/';
 				}
-				uri += param[key];
+				uri += _value;
 			}else if(meta.location === 'header'){
 				let safe = meta.encodingSafe || ' ;/?:@&=+$,';
 				if(meta.type === 'object'){
 					if(signatureContext.headerMetaPrefix === sentAs){
-						for(let item in param[key]){
-							let value = param[key][item];
+						for(let item in _value){
+							let value = _value[item];
 							item = String(item).trim().toLowerCase();
 							exheaders[item.indexOf(sentAs) === 0 ? item: sentAs + item] =  encodeURIWithSafe(value, safe);
 						}
 					}
 				}else if(meta.type === 'array'){
 					let arr = [];
-					for(let item in param[key]){
-						arr[item] = encodeURIWithSafe(param[key][item], safe);
+					for(let item in _value){
+						arr[item] = encodeURIWithSafe(_value[item], safe);
 					}
 					exheaders[sentAs] = arr;
 				}else if(meta.type === 'password'){
 					let encodeFunc = window.btoa ? window.btoa : Base64.encode;
-					exheaders[sentAs] = encodeFunc(param[key]);
+					exheaders[sentAs] = encodeFunc(_value);
 					let pwdSentAs = meta.pwdSentAs || (sentAs + '-MD5');
-					exheaders[pwdSentAs] = this.rawBufMD5(param[key]);
-				}else if(meta.type === 'number' && Number(param[key])){
-					exheaders[sentAs] = encodeURIWithSafe(String(param[key]), safe);
+					exheaders[pwdSentAs] = this.rawBufMD5(_value);
+				}else if(meta.type === 'number' && Number(_value)){
+					exheaders[sentAs] = encodeURIWithSafe(String(_value), safe);
 				}else if(meta.type === 'boolean'){
-					exheaders[sentAs] = encodeURIWithSafe(param[key] ? 'true' : 'false', safe);
+					exheaders[sentAs] = encodeURIWithSafe(_value ? 'true' : 'false', safe);
 				}else if(meta.type === 'adapter'){
-					let val = this[key + 'Adapter'](param[key], signatureContext);
+					let val = this[key + 'Adapter'](_value, signatureContext);
 					if(val){
 						exheaders[sentAs] = encodeURIWithSafe(String(val), safe);
 					}
 				}else {
-					exheaders[sentAs] = encodeURIWithSafe(String(param[key]), safe, meta.skipEncoding);
+					exheaders[sentAs] = encodeURIWithSafe(String(_value), safe, meta.skipEncoding);
 				}
 			}else if(meta.location === 'urlPath'){
 				let sep = urlPath === '' ? '?' : '&';
-				let value = param[key];
+				let value = _value;
 				if(meta.type !== 'number' || (meta.type === 'number' && Number(value) >= 0)){
 					urlPath += sep + encodeURIWithSafe(sentAs, '/') + '=' + encodeURIWithSafe(String(value), '/');
 				}
 			}else if(meta.location === 'xml'){
-				let mxml = this.toXml(param,meta,key,sentAs);
+				let mxml = this.toXml(param, meta, key, sentAs);
 				if(mxml){
 					xml += mxml;
 				}
 			}else if(meta['location'] === 'body'){
-				xml = param[key];
+				xml = _value;
 			}		
 		}
 	}
@@ -1165,6 +1168,8 @@ Utils.prototype.parseCommonHeaders = function(opt, headers, signatureContext){
 	}
 	opt.InterfaceResult.RequestId = headers[signatureContext.headerPrefix + 'request-id'];
 	opt.InterfaceResult.Id2 = headers[signatureContext.headerPrefix + 'id-2'];
+	opt.CommonMsg.RequestId = opt.InterfaceResult.RequestId;
+	opt.CommonMsg.Id2 = opt.InterfaceResult.Id2;
 };
 
 Utils.prototype.contrustCommonMsg = function(opt, obj, headers, signatureContext){
@@ -1197,7 +1202,7 @@ Utils.prototype.contrustCommonMsg = function(opt, obj, headers, signatureContext
 };
 
 
-Utils.prototype.getRequest = function(methodName, serverback, bc, signatureContext){
+Utils.prototype.getRequest = function(methodName, serverback, signatureContext, retryCount, bc){
     var regionDomains = this.regionDomains;
 	var opt = {};
 	var log = this.log;
@@ -1225,7 +1230,7 @@ Utils.prototype.getRequest = function(methodName, serverback, bc, signatureConte
 		bc(null,opt);
 	};
 	
-	if(serverback.status >= 300 && serverback.status < 400 && serverback.status !== 304){
+	if(serverback.status >= 300 && serverback.status < 400 && serverback.status !== 304 && retryCount <= 5){
         let location = headers.location || headers.Location;
 		if(location){
 			let err = 'http code is 3xx, need to redirect to ' + location;
@@ -1239,9 +1244,7 @@ Utils.prototype.getRequest = function(methodName, serverback, bc, signatureConte
             log.runLog('error', methodName, err);
             return bc('redirect', regionServer);
         } 
-		let err = 'get redirect code 3xx, but no location in headers';
-		log.runLog('error', methodName, err);
-		return bc(new Error(err), null);
+		log.runLog('error', methodName, 'get redirect code 3xx, but no location in headers');
 	} 
 		
 	if(serverback.status < 300){
@@ -1298,6 +1301,9 @@ Utils.prototype.getRequest = function(methodName, serverback, bc, signatureConte
 		log.runLog('debug', methodName, 'response body :' + body);
 	}
 	opt.CommonMsg.RequestId = headers[signatureContext.headerPrefix + 'request-id'];
+	opt.CommonMsg.Id2 = headers[signatureContext.headerPrefix + 'id2'];
+	opt.CommonMsg.Indicator = headers['x-reserved-indicator'];
+	
 	log.runLog('info', methodName, 'request finished with request id:' + opt.CommonMsg.RequestId);
 	log.runLog('debug', methodName, respMsg);
 	
@@ -1331,7 +1337,7 @@ Utils.prototype.getRequest = function(methodName, serverback, bc, signatureConte
 	});
 };
 
-Utils.prototype.makeRequest = function(methodName, opt, bc){
+Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 	var log = this.log;
 	var server = this.server;
 	var body = opt.xml || null;
@@ -1384,7 +1390,24 @@ Utils.prototype.makeRequest = function(methodName, opt, bc){
 		return bc(null, ret);
 	}
 	
-	var nowDate = new Date();
+	var requestDate = opt.$requestParam.RequestDate;
+	var nowDate;
+	var requestDateType = Object.prototype.toString.call(requestDate);
+	if(requestDateType === '[object Date]'){
+		nowDate = requestDate;
+	}else if(requestDateType === '[object String]'){
+		try{
+			nowDate = new Date();
+			nowDate.setTime(Date.parse(requestDate));
+		}catch(e){
+			//ignore
+		}
+	}
+	
+	if(!nowDate){
+		nowDate = new Date();
+	}
+	
 	var utcDateStr = nowDate.toUTCString();
 	var isV4 = signatureContext.signature.toLowerCase() === 'v4';
 	opt.headers[signatureContext.headerPrefix + 'date'] = isV4 ? getDates(utcDateStr)[1] : utcDateStr;
@@ -1468,7 +1491,11 @@ Utils.prototype.makeRequest = function(methodName, opt, bc){
 		})
 	};
 	var that = this;
-	if(opt.srcFile && window.FileReader && ((opt.srcFile instanceof window.File) || (opt.srcFile instanceof window.Blob))){
+	if(opt.srcFile){
+		if(!(opt.srcFile instanceof window.File) && !(opt.srcFile instanceof window.Blob)){
+			return bc(new Error('source file must be an instance of window.File or window.Blob'), null);
+		}
+		
 		let srcFile = opt.srcFile;
 		if(opt.Offset >= 0 && opt.PartSize > 0){
 			srcFile = this.sliceBlob(srcFile, opt.Offset, opt.Offset + opt.PartSize);
@@ -1479,32 +1506,20 @@ Utils.prototype.makeRequest = function(methodName, opt, bc){
 			}
 		}
 		
-		let fr = new window.FileReader();
-		fr.onload = function(e){			
-			reopt.data = e.target.result;
-			axios.request(reopt).then(function (response) {
-				log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
-				that.getRequest(methodName, response, bc, signatureContext);
-			}).catch(function (err) {
-				let headerStr = headerTostring(err);
-				log.runLog('error', methodName, 'Send request to service error [' + headerStr + ']');
-				log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
-				bc(err, null);
-			});
-		};
-		fr.onerror = function(e){
-			bc(e.target.error, null);
-		};
-		
-		fr.onabort = function(e){
-			bc(e.target.error, null);
-		};
-		
-		fr.readAsArrayBuffer(srcFile);
+		reopt.data = srcFile;
+		axios.request(reopt).then(function (response) {
+			log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
+			that.getRequest(methodName, response, signatureContext, retryCount, bc);
+		}).catch(function (err) {
+			let headerStr = headerTostring(err);
+			log.runLog('error', methodName, 'Send request to service error [' + headerStr + ']');
+			log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
+			bc(err, null);
+		});
 	}else{
 		axios.request(reopt).then(function (response) {
 			log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
-			that.getRequest(methodName, response, bc, signatureContext);
+			that.getRequest(methodName, response, signatureContext, retryCount, bc);
 		}).catch(function (err) {
 			let headerStr = headerTostring(err);
 			log.runLog('error', methodName, 'Send request to service error [' + headerStr + ']');
@@ -1515,15 +1530,18 @@ Utils.prototype.makeRequest = function(methodName, opt, bc){
 	
 };
 
-Utils.prototype.sendRequest = function(funcName, opt, backcall){
+Utils.prototype.sendRequest = function(funcName, opt, backcall, retryCount){
+	if(retryCount === undefined){
+		retryCount = 1;
+	}
 	var that = this;
-	that.makeRequest(funcName, opt, function(err, msg){
-		if(err === 'redirect' && msg){
+	that.makeRequest(funcName, opt, retryCount, function(err, msg){
+		if(err === 'redirect'){
 			var uri = urlLib.parse(msg);
 			opt.headers.Host = uri.hostname;
 			opt.protocol = uri.protocol;
 			opt.port = uri.port || ((opt.protocol && opt.protocol.toLowerCase().indexOf('https') === 0) ? 443 : 80);
-			that.sendRequest(funcName, opt, backcall);
+			that.sendRequest(funcName, opt, backcall, retryCount + 1);
 		}else{
 			backcall(err, msg);
 		}

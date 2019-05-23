@@ -85,7 +85,7 @@
 					runningTask++;
 					that.dropFile({
 						Bucket : ctx.bucket,
-						Key : key
+						Key : key,
 					}, function(err, result){
 						runningTask--;
 						ctx.finished++;
@@ -146,14 +146,18 @@
 					
 					ctx.isTruncated = result.InterfaceResult.IsTruncated === 'true';
 					
+					var createRecursiveDropByFolderTask = function(subFolder){
+						return function(){
+							recursiveDropByFolder({total : 0, finished : 0, isTruncated : false, bucket : bucket, subDeleted : true}, bucket, subFolder, null, createDone(subFolder, ctx, done));
+						};
+					};
+					
 					for(let j=0;j<result.InterfaceResult.CommonPrefixes.length;j++){
 						let subFolder = checkPrefix(result.InterfaceResult.CommonPrefixes[j]['Prefix']);
 						if(runningTask < taskNum){
 							recursiveDropByFolder({total : 0, finished : 0, isTruncated : false, bucket : bucket, subDeleted : true}, bucket, subFolder, null, createDone(subFolder, ctx, done));
 						}else{
-							taskQueue.push(function(){
-								recursiveDropByFolder({total : 0, finished : 0, isTruncated : false, bucket : bucket, subDeleted : true}, bucket, subFolder, null, createDone(subFolder, ctx, done));
-							});
+							taskQueue.push(createRecursiveDropByFolderTask(subFolder));
 						}
 					}
 					

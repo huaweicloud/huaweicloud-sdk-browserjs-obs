@@ -97,6 +97,7 @@
 			that.abortMultipartUpload({
 				Bucket:uploadCheckpoint.bucket,
 				Key:uploadCheckpoint.key,
+				RequestDate : uploadCheckpoint.requestDate,
 				UploadId:uploadCheckpoint.uploadId,
 			},function(err, result){
 				if(err){
@@ -144,6 +145,7 @@
 		ctx.that.completeMultipartUpload({
 			Bucket: ctx.uploadCheckpoint.bucket,
 			Key : ctx.uploadCheckpoint.key,
+			RequestDate : ctx.uploadCheckpoint.requestDate,
 			UploadId : ctx.uploadCheckpoint.uploadId,
 			Parts: parts
 		}, function(err, result){
@@ -210,6 +212,7 @@
 				var uploadPartParam = {
 					Bucket : ctx.uploadCheckpoint.bucket,
 					Key: ctx.uploadCheckpoint.key,
+					RequestDate : ctx.uploadCheckpoint.requestDate,
 					PartNumber: part.partNumber,
 					UploadId : ctx.uploadCheckpoint.uploadId,
 					SourceFile: ctx.uploadCheckpoint.sourceFile,
@@ -358,6 +361,8 @@
 				uploadCheckpoint.md5 = calculateUploadCheckpointMD5(uploadCheckpoint);
 			}
 			
+			uploadCheckpoint.requestDate = param.RequestDate;
+			
 			var ctx = {
 				start : new Date().getTime(),
 				uploadCheckpoint : uploadCheckpoint,
@@ -373,6 +378,7 @@
 				resumeCallback : resumeCallback,
 				isSuspend : false,
 				partsLoaded : {},
+				requestDate : param.RequestDate,
 				uploadPartParams : []
 			};
 			
@@ -408,6 +414,7 @@
 				that.initiateMultipartUpload({
 					Bucket : param.Bucket,
 					Key : param.Key,
+					RequestDate : param.RequestDate,
 					ACL : param.ACL,
 					Metadata : param.Metadata,
 					WebsiteRedirectLocation : param.WebsiteRedirectLocation,
