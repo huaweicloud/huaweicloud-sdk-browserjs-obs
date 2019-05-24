@@ -876,39 +876,39 @@ Utils.prototype.sliceBlob = function (blob, start, end, type) {
 };
 
 
-Utils.prototype.toXml = function(mXml, xmlMeta, root, sentAs){
+Utils.prototype.toXml = function(mXml, xmlMeta, root, sentAs, signatureContext){
 	var xml = ''; 
 	if(root !== null){
-		xml += this.buildXml(mXml, xmlMeta, root, sentAs);
+		xml += this.buildXml(mXml, xmlMeta, root, sentAs, signatureContext);
 		return xml;
 	}
 	for (let key in xmlMeta){
 		if(key in mXml){
 			let _sentAs = xmlMeta[key].sentAs || key;
-			xml += this.buildXml(mXml, xmlMeta[key], key, _sentAs);
+			xml += this.buildXml(mXml, xmlMeta[key], key, _sentAs, signatureContext);
 		}
 	}
 	return xml;
 };
 
-Utils.prototype.buildXml = function(mXml, xmlMeta, key, sentAs){
+Utils.prototype.buildXml = function(mXml, xmlMeta, key, sentAs, signatureContext){
 	var xml = '';
 	let type = xmlMeta.type;
 	if(type === 'array'){
 		for(let i = 0; i < mXml[key].length; i++){
 			if(xmlMeta.items.type === 'object'){
-				let result = this.toXml(mXml[key][i],xmlMeta.items.parameters,null);
+				let result = this.toXml(mXml[key][i], xmlMeta.items.parameters, null, null, signatureContext);
 				if(result !== ''){
 					xml += '<'+sentAs +'>'+ result + '</'+sentAs +'>';
 				}
 			}else if(xmlMeta.items.type === 'adapter'){
-				xml += '<' + sentAs + '>' + String(this[key + 'Adapter'](mXml[key][i])).replace(/&/g, '&amp;').replace(/'/g, '&apos;').replace(/"/g, '&quot;') + '</' + sentAs + '>';
+				xml += '<' + sentAs + '>' + String(this[key + 'Adapter'](mXml[key][i], signatureContext)).replace(/&/g, '&amp;').replace(/'/g, '&apos;').replace(/"/g, '&quot;') + '</' + sentAs + '>';
 			}else if(xmlMeta.items.type !== 'array'){
 				xml += '<' + sentAs + '>'+ String(mXml[key][i]).replace(/&/g, '&amp;').replace(/'/g, '&apos;').replace(/"/g, '&quot;') + '</' + sentAs +'>';
 			}
 		}
 	}else if(type === 'object'){
-		let result = this.toXml(mXml[key], xmlMeta.parameters, null);
+		let result = this.toXml(mXml[key], xmlMeta.parameters, null, null, signatureContext);
 		if(result !== ''){
 			xml += '<'+sentAs;
 			if('data' in xmlMeta){
@@ -924,7 +924,7 @@ Utils.prototype.buildXml = function(mXml, xmlMeta, key, sentAs){
 		}
 		
 	}else if(type === 'adapter'){
-		xml += '<' + sentAs + '>' + String(this[key + 'Adapter'](mXml[key])).replace(/&/g, '&amp;').replace(/'/g, '&apos;').replace(/"/g, '&quot;') + '</' + sentAs + '>';
+		xml += '<' + sentAs + '>' + String(this[key + 'Adapter'](mXml[key], signatureContext)).replace(/&/g, '&amp;').replace(/'/g, '&apos;').replace(/"/g, '&quot;') + '</' + sentAs + '>';
 	}else if(type !== 'ignore'){
 		xml += '<'+ sentAs + '>' + String(mXml[key]).replace(/&/g, '&amp;').replace(/'/g, '&apos;').replace(/"/g, '&quot;') + '</'+sentAs+'>';
 	}
@@ -1079,7 +1079,7 @@ Utils.prototype.makeParam = function(methodName, param){
 					urlPath += sep + encodeURIWithSafe(sentAs, '/') + '=' + encodeURIWithSafe(String(value), '/');
 				}
 			}else if(meta.location === 'xml'){
-				let mxml = this.toXml(param, meta, key, sentAs);
+				let mxml = this.toXml(param, meta, key, sentAs, signatureContext);
 				if(mxml){
 					xml += mxml;
 				}
@@ -1235,14 +1235,18 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
 		if(location){
 			let err = 'http code is 3xx, need to redirect to ' + location;
 			log.runLog('warn', methodName, err);
-			return bc('redirect', location);
+			let redirectErr = new Error('redirect');
+			redirectErr.location = location;
+			return bc(redirectErr);
 		}
 		let bucketLocation = headers['x-amz-bucket-region'] || headers['x-obs-bucket-location'];
 		if (bucketLocation && regionDomains[bucketLocation]) {
             let regionServer = (this.isSecure ? 'https://' : 'http://') + regionDomains[bucketLocation];
             let err = 'get redirect code 3xx, need to redirect to' + regionServer;
             log.runLog('error', methodName, err);
-            return bc('redirect', regionServer);
+            let redirectErr = new Error('redirect');
+			redirectErr.location = regionServer;
+            return bc(redirectErr);
         } 
 		log.runLog('error', methodName, 'get redirect code 3xx, but no location in headers');
 	} 
@@ -1536,8 +1540,8 @@ Utils.prototype.sendRequest = function(funcName, opt, backcall, retryCount){
 	}
 	var that = this;
 	that.makeRequest(funcName, opt, retryCount, function(err, msg){
-		if(err === 'redirect'){
-			var uri = urlLib.parse(msg);
+		if(err && err.message === 'redirect'){
+			var uri = urlLib.parse(err.location);
 			opt.headers.Host = uri.hostname;
 			opt.protocol = uri.protocol;
 			opt.port = uri.port || ((opt.protocol && opt.protocol.toLowerCase().indexOf('https') === 0) ? 443 : 80);

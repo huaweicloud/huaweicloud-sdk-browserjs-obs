@@ -1678,7 +1678,8 @@ const operations = {
 			'ACL' : {
 				'location' : 'header',
 				'sentAs' : 'acl',
-				'withPrefix' : true
+				'withPrefix' : true,
+				'type' : 'adapter'
 			},
 			'GrantRead' : {
 				'location' : 'header',
@@ -1704,6 +1705,7 @@ const operations = {
 				'location' : 'header',
 				'sentAs' : 'storage-class',
 				'withPrefix' : true,
+				'type' : 'adapter'
 			},
 			'Metadata' : {
 				'type' : 'object',
@@ -1834,7 +1836,8 @@ const operations = {
 			'ACL' : {
 				'location' : 'header',
 				'sentAs' : 'acl',
-				'withPrefix' : true
+				'withPrefix' : true,
+				'type' : 'adapter'
 			},
 			'GrantRead' : {
 				'location' : 'header',
@@ -1860,6 +1863,7 @@ const operations = {
 				'location' : 'header',
 				'sentAs' : 'storage-class',
 				'withPrefix' : true,
+				'type' : 'adapter'
 			},
 			'Metadata' : {
 				'type' : 'object',
@@ -2176,7 +2180,8 @@ const operations = {
 			'ACL' : {
 				'location' : 'header',
 				'sentAs' : 'acl',
-				'withPrefix' : true
+				'withPrefix' : true,
+				'type' : 'adapter'
 			},
 			'GrantRead' : {
 				'location' : 'header',
@@ -2201,7 +2206,8 @@ const operations = {
 			'StorageClass' : {
 				'location' : 'header',
 				'sentAs' : 'storage-class',
-				'withPrefix' : true
+				'withPrefix' : true,
+				'type' : 'adapter'
 			},
 			'CopySource' : {
 				'required' : true,
@@ -2646,7 +2652,8 @@ const operations = {
             'StorageClass': {
                 'location': 'header',
                 'sentAs': 'storage-class',
-                'withPrefix': true
+                'withPrefix': true,
+                'type' : 'adapter'
             },
             'Metadata': {
                 'location': 'header',
@@ -2871,7 +2878,8 @@ const operations = {
 			'ACL' : {
 				'location' : 'header',
 				'sentAs' : 'acl',
-				'withPrefix' : true
+				'withPrefix' : true,
+				'type' : 'adapter'
 			},
 			'GrantRead' : {
 				'location' : 'header',
@@ -2896,7 +2904,8 @@ const operations = {
 			'StorageClass' : {
 				'location' : 'header',
 				'sentAs' : 'storage-class',
-				'withPrefix' : true
+				'withPrefix' : true,
+				'type' : 'adapter'
 			},
 			'Metadata' : {
 				'type' : 'object',
