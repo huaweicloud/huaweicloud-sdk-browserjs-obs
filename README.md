@@ -1,54 +1,69 @@
-﻿
+
+Version 3.19.5
+
+New features:
+1. Added the VerifyMd5 field to the ObsClient.uploadFile API to verify the MD5 value of each part in the multipart upload.
+2. Upgraded the third-party dependency URI.js to 1.19.1.
+
+Documentation & Demo:
+
+Resolved issues:
+1. [Function] Fixed the issue of "not a function" reported by ObsClient.copyObject and ObsClient.copyPart.
+
+-----------------------------------------------------------------------------------
+
 Version 3.1.4
 
-新特性：
-1. 所有接口请求对象新增RequestDate字段（Date|String），用于自定义请求时间；
-2. 所有响应公共结果对象中新增Id2和Indicator字段，用于问题定位；
-3. 升级底层依赖，对于不支持window.FileReader的浏览器也可以正常上传；
+New features:
+1. Added the RequestDate field (Date|String) to all API request objects for defining the request time.
+2. Added the Id2 and Indicator fields to all response common result objects for fault locating.
+3. Upgraded the underlying dependency. Browsers that do not support window.FileReader can support object upload.
 
-资料&demo：
+Documentation & Demo:
+1. Added the description of the RequestDate fields to all APIs.
 
-修复问题：
+Resolved issues:
 
-1. 【功能】对必选字段增加非空字符串/非null/非undefined的校验；
-2. 【性能】修复ObsClient.uploadFile/ObsClient.uploadPart上传大文件时，内存占用过高导致浏览器崩溃的问题；
-3. 【功能】使用ObsClient.putObject/ObsClient.uploadFile/ObsClient.uploadPart上传文件时对于不支持window.Blob和window.File的浏览器直接返回错误；
+1. [Function] Added non-empty character string, non-null, or non-undefined verification for mandatory fields.
+2. [Performance] Fixed the issue that the browser breaks down because the memory usage is too high during large file upload using ObsClient.uploadFile or ObsClient.uploadPart.
+3. [Function] Fixed the issue that an error is returned directly for browsers that do not support window.Blob or window.File during file upload using ObsClient.putObject, ObsClient.uploadFile, or ObsClient.uploadPart.
+4. [Function] Fixed the issue that an error occurs when setting the StorageClass parameter using ObsClient.putObject, ObsClient.appendObject, or ObsClient.InitiateMultipartUpload.
 
 -----------------------------------------------------------------------------------
 
 Version 3.1.3
 
-新特性：
+New features:
 
-资料&demo：
+Documentation & Demo:
 
-修复问题：
-1. 修复ObsClient.listObjects/ObsClient.listVersions/ObsClient.getObject/ObsClient.getObjectMetadata/ObsClient.copyObject/ObsClient.listParts/ObsClient.copyPart接口响应中返回的LastModified字段不是UTC标准格式的问题；
+Resolved issues:
+1. Fixed the issue that the LastModified field is not in the UTC format in the responses returned by the following APIs: ObsClient.listObjects, ObsClient.listVersions, ObsClient.getObject, ObsClient.getObjectMetadata, ObsClient.copyObject, ObsClient.listParts, and ObsClient.copyPart.
 
 -----------------------------------------------------------------------------------
 
 Version 3.1.2
 
-新特性：
-1. 桶事件通知接口（ObsClient.setBucketNotification/ObsClient.getBucketNotification）新增对函数工作流服务配置和查询的支持；
+New features:
+1. FunctionGraph configuration and query are supported in the bucket event notification APIs: ObsClient.setBucketNotification and ObsClient.getBucketNotification.
 
-资料&demo：
-1. 开发指南事件通知章节，新增对函数工作流服务配置的介绍；
-2. 接口参考设置/获取桶的时间通知配置章节，新增函数工作流服务配置的参数描述；
+Documentation & Demo:
+1. Added the description of FunctionGraph configuration in the section about event notification in the Developer Guide.
+2. Added the parameter description of FunctionGraph configuration in sections related to configuring and obtaining bucket notification in the API Reference.
 
-修复问题：
+Resolved issues:
 
 --------------------------------------------------------------
 
 Version 3.1.1
 
-新特性：
-1. 上传对象（ObsClient.putObject）/下载对象（ObsClient.getObject）/上传段（ObsClient.uploadPart）/追加上传（ObsClient.appendObject）新增支持设置进度回调函数；
-2. 新增断点续传上传接口（ObsClient.uploadFile），支持设置进度回调函数和事件回调函数，并支持取消上传任务；
+New features:
+1. Added support for setting the progress callback function in the following APIs: ObsClient.putObject, ObsClient.getObject, ObsClient.uploadPart, and ObsClient.appendObject.
+2. Added the resumable upload API ObsClient.uploadFile which supports the setting of the progress callback function and event callback function, as well as canceling uploading tasks.
 	
-资料&demo：
-1. 开发指南新增获取上传进度章节、断点续传上传章节和获取下载进度章节；
-2. 接口参考新增断点续传上传章节；
-3. 接口参考修改上传对象、追加上传、下载对象和上传段章节，新增进度回调函数参数；
+Documentation & Demo:
+1. Added the sections about obtaining upload progress, resumable upload, and obtaining download progress in the Developer Guide.
+2. Added the section about resumable upload in the API Reference.
+3. Modified the sections about uploading an object, appendable upload, downloading an object, and uploading a part in the API Reference. Added the parameter of progress callback function.
 
-修复问题：
+Resolved issues:

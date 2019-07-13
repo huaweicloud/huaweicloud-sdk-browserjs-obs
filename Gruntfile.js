@@ -37,9 +37,9 @@ module.exports = function(grunt) {
 		    	
 		    	reporter: 'reporter',
 		    	
-		    	js:  ['src/base64.js', 'src/sha.js', 'src/URI.js', 'src/axios.js', 'src/log.js', 'src/v2Model.js', 'src/obsModel.js', 'src/xml2js.js', 'src/md5.js' ,'src/utils.js', 'src/enums.js', 'src/posix.js', 'src/resumable.js', 'src/obs.js'],
+		    	js:  ['src/vendor/base64.js', 'src/vendor/sha.js', 'src/vendor/URI.js', 'src/vendor/axios.js', 'src/scripts/log.js', 'src/scripts/v2Model.js', 'src/scripts/obsModel.js', 'src/scripts/xml2js.js', 'src/vendor/md5.js' ,'src/scripts/utils.js', 'src/scripts/enums.js', 'src/scripts/posix.js', 'src/scripts/resumable.js', 'src/scripts/obs.js'],
 		    	
-		    	lintJs : ['src/log.js', 'src/v2Model.js', 'src/obsModel.js' ,'src/utils.js', 'src/enums.js', 'src/posix.js', 'src/resumable.js', 'src/obs.js'],
+		    	lintJs : ['src/scripts/log.js', 'src/scripts/v2Model.js', 'src/scripts/obsModel.js' ,'src/scripts/utils.js', 'src/scripts/enums.js', 'src/scripts/posix.js', 'src/scripts/resumable.js', 'src/scripts/xml2js.js', 'src/scripts/obs.js'],
 		    	
 		    	view: 'src/*.html',
 		    	
@@ -58,6 +58,10 @@ module.exports = function(grunt) {
 		
 		return list;
 	};
+	
+	var process = require('process');
+	var zipPackageName = process.env.zipPackageName || '<%= pkg.name %>-<%= pkg.version %>';
+	
 	
 	// Project initialization configuration
 	grunt
@@ -194,8 +198,8 @@ module.exports = function(grunt) {
 				zip: {
 					dist :{
 						cwd : '.',
-						dest : '<%= config.app.dist %>/<%= pkg.name %>-<%= pkg.version %>.zip',
-				    	src : ['<%= config.app.dist %>/index.html', '<%= config.app.dist %>/source/**', 'examples/*.html', '<%= config.app.dist %>/<%= pkg.name %>-<%= pkg.version %>.min.js', '<%= config.app.dist %>/<%= pkg.name %>-without-polyfill-<%= pkg.version %>.min.js', 'Help on License', 'LICENSE'],
+						dest : '<%= config.app.dist %>/'+zipPackageName+'.zip',
+				    	src : ['<%= config.app.dist %>/index.html', '<%= config.app.dist %>/source/**', 'examples/*.html', '<%= config.app.dist %>/<%= pkg.name %>-<%= pkg.version %>.min.js', '<%= config.app.dist %>/<%= pkg.name %>-without-polyfill-<%= pkg.version %>.min.js', 'LICENSE', 'Notice.MD'],
 				    	compression: 'DEFLATE'
 					}
 				},
