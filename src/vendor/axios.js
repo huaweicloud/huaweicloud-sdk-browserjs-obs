@@ -1,13 +1,10 @@
 /* axios v0.16.2 | (c) 2017 by Matt Zabriskie */
 (function webpackUniversalModuleDefinition(root, factory) {
-	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory();
-	else if(typeof define === 'function' && define.amd)
+	if(typeof define === 'function' && define.amd){
 		define('axios', [], factory);
-	else if(typeof exports === 'object')
-		exports["axios"] = factory();
-	else
+	}else{
 		root["axios"] = factory();
+	}
 })(this ? this : window, function() {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
