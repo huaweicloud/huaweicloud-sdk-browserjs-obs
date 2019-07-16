@@ -204,10 +204,7 @@
     }
     // module.exports and AMD are mutually exclusive.
     // module.exports has precedence.
-    if (typeof module !== 'undefined' && module.exports) {
-        module.exports.Base64 = global.Base64;
-    }
-    else if (typeof define === 'function' && define.amd) {		
+    if (typeof define === 'function' && define.amd) {		
         // AMD. Register as an anonymous module.	
         define('Base64', [], function(){ return global.Base64 });
     }
