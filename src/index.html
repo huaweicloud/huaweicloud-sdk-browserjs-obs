@@ -19,25 +19,33 @@
     <p>
     
     <h5>Upload File</h5>
-    <label>Bucket:</label> <input type="text" value="bucketname" id="bucket4upload"/>
-    <p>
+    <label>Bucket:</label> <input type="text" value="obstrans" id="bucket4upload"/>
     <label>Key:</label> <input type="text" value="objectkey" id="key4upload"/>
-    <p>
-    <label>PartSize:</label> <input type="text" value="5242880" id="partSize4upload"/>
     <p>
     <input type="file" id="files"/>
     <input type="button" value="Click to upload" onclick="doUpload();"/>
 	<input type="button" value="Click to upload through multipart" onclick="doUploadMultipart();"/>
+	<div id="speed">
+	</div>
+	
+	<div id="progress">
+	</div>
     <P>
     <h5>Download File</h5>
-    <label>Bucket:</label> <input type="text" value="bucketname" id="bucket4download"/>
-    <p>
+    <label>Bucket:</label> <input type="text" value="obstrans" id="bucket4download"/>
     <label>Key:</label> <input type="text" value="objectkey" id="key4download"/>
-    <p>
+    <label>Type:</label>
+    <select id="saveAsByType">
+    	<option value="file">file</option>
+		<option value="arraybuffer">arraybuffer</option>
+		<option value="blob">blob</option>
+		<option value="text">text</option>
+	</select>
+	<p>
     <input type="button" value="Click to download" onclick="doDownload();"/>
     <p>
     <h5>List Objects</h5>
-    <label>Bucket:</label> <input type="text" value="bucketname" id="bucket4listobjects"/>
+    <label>Bucket:</label> <input type="text" value="obstrans" id="bucket4listobjects"/>
     <p>
     <input type="button" value="Click to list objects" onclick="doListObjects();"/>
     <p>
@@ -50,12 +58,12 @@
 <script src="vendor/base64.js"></script>
 <script src="vendor/sha.js"></script>
 <script src="vendor/URI.js"></script>
+<script src="vendor/md5.js"></script>
 <script src="vendor/axios.js"></script>
 <script src="scripts/log.js"></script>
 <script src="scripts/v2Model.js"></script>
 <script src="scripts/obsModel.js"></script>
 <script src="scripts/xml2js.js"></script>
-<script src="vendor/md5.js"></script>
 <script src="scripts/utils.js"></script>
 <script src="scripts/enums.js"></script>
 <script src="scripts/posix.js"></script>
@@ -82,16 +90,86 @@
 		// get object
 		var bucketName = document.getElementById('bucket4download');
 		var objectKey = document.getElementById('key4download');
+		var saveByType = document.getElementById('saveAsByType').value;
 		getObsClient().getObject({
 			Bucket : bucketName.value,
 			Key : objectKey.value,
-			SaveByType : 'file',
+			SaveByType : saveByType,
 		}).then(function(result){
-			// download file path
-			console.log(result.InterfaceResult.Content);
+			if(saveByType === 'file'){
+				// download file path
+				console.log(result.InterfaceResult.Content.SignedUrl);
+			}else{
+				console.log(result.InterfaceResult.Content);
+			}
 		}).catch(function(err){
-			console.error('err:' + err);
+			console.error(err);
 		});
+	}
+	
+	var speed = document.getElementById('speed');
+	var progress = document.getElementById('progress');
+	function doUpload(){ 
+		var bucketName = document.getElementById('bucket4upload');
+		var objectKey = document.getElementById('key4upload');
+		// put objects
+ 		getObsClient().putObject({
+			Bucket:bucketName.value,
+			Key:objectKey.value,
+			Metadata:{property:'property-value'},
+			SourceFile : document.getElementById('files').files[0],
+			ProgressCallback : function(transferredAmount, totalAmount, totalSeconds){
+				speed.innerHTML = transferredAmount * 1.0 / totalSeconds / 1024;
+				progress.innerHTML = transferredAmount * 100.0 / totalAmount
+			}
+		}).then(function(result){
+			console.log('CommonMsg:');
+			console.log('Status-->' + result.CommonMsg.Status);
+			console.log('Code-->' + result.CommonMsg.Code);
+			console.log('Message-->' + result.CommonMsg.Message);
+			console.log('HostId-->' + result.CommonMsg.HostId);
+			console.log('InterfaceResult:');
+			if(result.InterfaceResult){
+				console.log('RequestId-->' + result.InterfaceResult.RequestId);
+				console.log('ETag-->' + result.InterfaceResult.ETag);
+				console.log('VersionId-->' + result.InterfaceResult.VersionId);
+				console.log('StorageClass-->' + result.InterfaceResult.StorageClass);
+			}
+		}).catch(function(err){
+			console.error(err);
+		}); 
+	}
+	
+	function doUploadMultipart(){
+		var bucketName = document.getElementById('bucket4upload');
+		var objectKey = document.getElementById('key4upload');
+		
+		var file = document.getElementById('files').files[0];
+		var fileSize = file.size;
+		getObsClient().uploadFile({
+			Bucket:bucketName.value,
+			Key:objectKey.value,
+			Metadata:{property:'property-value'},
+			SourceFile : document.getElementById('files').files[0],
+			TaskNum : 3,
+			ProgressCallback : function(transferredAmount, totalAmount, totalSeconds){
+				speed.innerHTML = transferredAmount * 1.0 / totalSeconds / 1024;
+				progress.innerHTML = transferredAmount * 100.0 / totalAmount
+			}
+		}).then(function(result){
+			console.log('CommonMsg:');
+			console.log('Status-->' + result.CommonMsg.Status);
+			console.log('Code-->' + result.CommonMsg.Code);
+			console.log('Message-->' + result.CommonMsg.Message);
+			console.log('HostId-->' + result.CommonMsg.HostId);
+			console.log('InterfaceResult:');
+			if(result.InterfaceResult){
+				console.log('RequestId-->' + result.InterfaceResult.RequestId);
+				console.log('ETag-->' + result.InterfaceResult.ETag);
+			}
+		}).catch(function(err){
+			console.error(err);
+		});  		
 	}
 	
 	function doListObjects(){
@@ -134,129 +212,8 @@
 				}
 			}
 		}).catch(function(err){
-			console.error('err:' + err);
+			console.error(err);
 		});
-	}
-
-	function doUpload(){ 
-		var bucketName = document.getElementById('bucket4upload');
-		var objectKey = document.getElementById('key4upload');
-		// put objects
- 		getObsClient().putObject({
-			Bucket:bucketName.value,
-			Key:objectKey.value,
-			Metadata:{property:'property-value'},
-			SourceFile : document.getElementById('files').files[0]
-		}).then(function(result){
-			console.log('CommonMsg:');
-			console.log('Status-->' + result.CommonMsg.Status);
-			console.log('Code-->' + result.CommonMsg.Code);
-			console.log('Message-->' + result.CommonMsg.Message);
-			console.log('HostId-->' + result.CommonMsg.HostId);
-			console.log('InterfaceResult:');
-			if(result.InterfaceResult){
-				console.log('RequestId-->' + result.InterfaceResult.RequestId);
-				console.log('ETag-->' + result.InterfaceResult.ETag);
-				console.log('VersionId-->' + result.InterfaceResult.VersionId);
-				console.log('StorageClass-->' + result.InterfaceResult.StorageClass);
-			}
-		}).catch(function(err){
-			console.error('err:' + err);
-		}); 
-	}
-	
-	var globalContext = {}; 
-	globalContext.maxTaskNum = 5;
-	globalContext.currentTaskNum = 0;
-	
-	function doUploadPart(obsClient, uploadPartStatus){
-		while(uploadPartStatus.currentPartIndex < uploadPartStatus.partCount && globalContext.currentTaskNum < globalContext.maxTaskNum){
-			var offset = uploadPartStatus.currentPartIndex * uploadPartStatus.partSize;
-			var currPartSize = (uploadPartStatus.currentPartIndex + 1 === uploadPartStatus.partCount) ? uploadPartStatus.fileSize - offset : uploadPartStatus.partSize;
-			var partNumber = uploadPartStatus.currentPartIndex + 1;
-			uploadPartStatus.currentPartIndex++;
-			globalContext.currentTaskNum++;
-			
-			var getCallback = function(partNumber){
-				return function(result) {
-					globalContext.currentTaskNum--;
-					doUploadPart(obsClient, uploadPartStatus);
-					if(result.CommonMsg.Status < 300){
-						console.log('Part:' + partNumber + ' finished, etag:' + result.InterfaceResult.ETag);
-						uploadPartStatus.parts.push({PartNumber : partNumber, ETag : result.InterfaceResult.ETag});
-						if(uploadPartStatus.parts.length === uploadPartStatus.partCount){
-							var _parts = uploadPartStatus.parts.sort(function(a, b) {
-								if(a.PartNumber >= b.PartNumber){
-									return 1;
-								}
-								return -1;
-							});
-							obsClient.completeMultipartUpload({
-								Bucket:uploadPartStatus.bucketName,
-								Key:uploadPartStatus.objectKey,
-								UploadId: uploadPartStatus.uploadId,
-								Parts: _parts
-							}, function(err, result){
-								if(!err && result.CommonMsg.Status < 300){
-									console.log('Complete to upload multiparts finished.\n');
-								}else{
-									var msg = err || result.CommonMsg.Code;
-									console.error(msg);
-								}
-							});
-						}
-					}else{
-						console.error(result.CommonMsg.Code);
-					}
-				}
-			};
-			
-			obsClient.uploadPart({
-				Bucket:uploadPartStatus.bucketName,
-				Key:uploadPartStatus.objectKey,
-				PartNumber: partNumber,
-				UploadId : uploadPartStatus.uploadId,
-				SourceFile: uploadPartStatus.file,
-				Offset : offset,
-				PartSize : currPartSize
-			}).then(getCallback(partNumber)).catch(function(err){
-				console.error('err:' + err);
-			});
-		}
-	}
-	
-	function doUploadMultipart(){
-		var bucketName = document.getElementById('bucket4upload');
-		var objectKey = document.getElementById('key4upload');
-		var partSize = parseInt(document.getElementById('partSize4upload').value);
-		var obsClient = getObsClient();
-		
-		var file = document.getElementById('files').files[0];
-		var fileSize = file.size;
- 		obsClient.initiateMultipartUpload({
-			Bucket:bucketName.value,
-			Key:objectKey.value
-		}).then(function(result){
-			var uploadId = result.InterfaceResult.UploadId;
-			console.log('uploadId:' + uploadId);
-			var partCount = fileSize % partSize === 0 ? Math.floor(fileSize / partSize) : Math.floor(fileSize / partSize) + 1;
-			console.log('partCount:' + partCount);
-			var uploadPartStatus = {
-				bucketName : bucketName.value,
-				objectKey : objectKey.value,
-				uploadId : uploadId,
-				file : file,
-				fileSize : fileSize,
-				partSize : partSize,
-				partCount : partCount,
-				currentPartIndex : 0,
-				parts : []
-			};
-			doUploadPart(obsClient, uploadPartStatus);
-		}).catch(function(err){
-			console.error('err:' + err);
-		}); 		
-
 	}
 
 </script>

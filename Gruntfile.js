@@ -37,7 +37,7 @@ module.exports = function(grunt) {
 		    	
 		    	reporter: 'reporter',
 		    	
-		    	js:  ['src/vendor/base64.js', 'src/vendor/sha.js', 'src/vendor/URI.js', 'src/vendor/axios.js', 'src/scripts/log.js', 'src/scripts/v2Model.js', 'src/scripts/obsModel.js', 'src/scripts/xml2js.js', 'src/vendor/md5.js' ,'src/scripts/utils.js', 'src/scripts/enums.js', 'src/scripts/posix.js', 'src/scripts/resumable.js', 'src/scripts/obs.js'],
+		    	js:  ['src/vendor/base64.js', 'src/vendor/sha.js', 'src/vendor/URI.js', 'src/vendor/md5.js', 'src/vendor/axios.js', 'src/scripts/log.js', 'src/scripts/v2Model.js', 'src/scripts/obsModel.js', 'src/scripts/xml2js.js' ,'src/scripts/utils.js', 'src/scripts/enums.js', 'src/scripts/posix.js', 'src/scripts/resumable.js', 'src/scripts/obs.js'],
 		    	
 		    	lintJs : ['src/scripts/log.js', 'src/scripts/v2Model.js', 'src/scripts/obsModel.js' ,'src/scripts/utils.js', 'src/scripts/enums.js', 'src/scripts/posix.js', 'src/scripts/resumable.js', 'src/scripts/xml2js.js', 'src/scripts/obs.js'],
 		    	

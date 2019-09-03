@@ -27,8 +27,7 @@
 					/(\\t|\\r|\\n)/g, '').replace(/"",[\n\t\r\s]+""[,]*/g, '')
 					.replace(/(\n[\t\s\r]*\n)/g, '').replace(
 							/[\s\t]{2,}""[,]{0,1}/g, '').replace(
-							/"[\s\t]{1,}"[,]{0,1}/g, '').replace(
-							/\[[\t\s]*\]/g, '""');
+							/"[\s\t]{1,}"[,]{0,1}/g, '');
 			return (rejsn.indexOf('"parsererror": {') === -1) ? rejsn : 'Invalid XML format';
 		};
 		

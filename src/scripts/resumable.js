@@ -377,6 +377,10 @@
 					return _callback('source file is not valid, must be an instanceof [File | Blob]');
 				}
 				
+				if(!sourceFile.mozSlice && !sourceFile.webkitSlice && !sourceFile.slice){
+					return _callback('your browser cannot support the slice method for [File | Blob]');
+				}
+				
 				that.log.runLog('debug', funcName, 'Begin to uploadFile to OBS from file:' + sourceFile.name);
 				
 				let fileSize = sourceFile.size;
@@ -435,6 +439,15 @@
 				}
 				
 				uploadCheckpoint.md5 = calculateUploadCheckpointMD5(uploadCheckpoint);
+			}else{
+				let sourceFile = uploadCheckpoint.SourceFile;
+				if(!(sourceFile instanceof window.File) && !(sourceFile instanceof window.Blob)){
+					return _callback('source file is not valid, must be an instanceof [File | Blob]');
+				}
+				
+				if(!sourceFile.mozSlice && !sourceFile.webkitSlice && !sourceFile.slice){
+					return _callback('your browser cannot support the slice method for [File | Blob]');
+				}
 			}
 			
 			uploadCheckpoint.requestDate = param.RequestDate;

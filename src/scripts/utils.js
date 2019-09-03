@@ -138,7 +138,7 @@ const urlLib = {
 };
 
 const CONTENT_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-const OBS_SDK_VERSION = '3.19.5';
+const OBS_SDK_VERSION = '3.19.7';
 
 const mimeTypes = {
     '7z' : 'application/x-7z-compressed',
@@ -551,6 +551,7 @@ function Utils(log_in) {
 	this.obsSdkVersion = OBS_SDK_VERSION;
 	this.isCname = false;
 	this.bucketEventEmitters = {};
+	this.useRawXhr = false;
 }
 
 Utils.prototype.encodeURIWithSafe = encodeURIWithSafe;
@@ -564,7 +565,8 @@ Utils.prototype.refresh = function(ak, sk, securityToken){
 };
 
 Utils.prototype.initFactory = function(ak, sk, isSecure,
-		server, pathStyle, signature, region, port, timeout, securityToken, isSignatureNegotiation, isCname, urlPrefix, regionDomains, setRequestHeaderHook){
+		server, pathStyle, signature, region, port, timeout, securityToken, isSignatureNegotiation, 
+		isCname, urlPrefix, regionDomains, setRequestHeaderHook, useRawXhr){
 	
 	this.refresh(ak, sk, securityToken);
 
@@ -638,6 +640,10 @@ Utils.prototype.initFactory = function(ak, sk, isSecure,
 	
 	if(timeout !== undefined){
 		this.timeout = parseInt(timeout);
+	}
+	
+	if(useRawXhr !== undefined){
+		this.useRawXhr = useRawXhr;
 	}
 };
 
@@ -1462,7 +1468,7 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 
 	var ex = opt.headers;
     if (isFunction(this.setRequestHeaderHook)) {
-        this.setRequestHeaderHook(ex);
+        this.setRequestHeaderHook(ex, opt.$requestParam);
     }
 	var host = ex.Host;
 	let method = opt.method;
@@ -1491,79 +1497,221 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 	}
 	
 	var start = nowDate.getTime();
-	var onUploadProgress = null;
-	var onDownloadProgress = null;
+	var that = this;
 	
-	if(isFunction(opt.ProgressCallback)){
-		let progressListener = function(event){
-			if(event.lengthComputable){
-				opt.ProgressCallback(event.loaded, event.total, (new Date().getTime() - start) / 1000);
+	if(!this.useRawXhr){
+		var onUploadProgress = null;
+		var onDownloadProgress = null;
+		if(isFunction(opt.ProgressCallback)){
+			let progressListener = function(event){
+				if(event.lengthComputable){
+					opt.ProgressCallback(event.loaded, event.total, (new Date().getTime() - start) / 1000);
+				}
+			};
+			if(method === 'GET'){
+				onDownloadProgress = progressListener;
+			}else if(method === 'PUT' || method === 'POST'){
+				onUploadProgress = progressListener;
 			}
-		};
-		if(method === 'GET'){
-			onDownloadProgress = progressListener;
-		}else if(method === 'PUT' || method === 'POST'){
-			onUploadProgress = progressListener;
 		}
+		
+		var reopt = {
+			method : method,
+			baseURL : _isSecure ? 'https://' + this.urlPrefix + host + ':' + port : 'http://' + this.urlPrefix + host + ':' + port,
+			url : path,
+			withCredentials: false, 
+			headers : ex,
+			validateStatus: function(status){
+				return status >= 200;
+			},
+			maxRedirects : 0,
+			responseType : responseType,
+			data : body,
+			timeout : this.timeout * 1000,
+			onUploadProgress : onUploadProgress,
+			onDownloadProgress : onDownloadProgress,
+			cancelToken : new axios.CancelToken(function(cancelHook){
+				opt.$requestParam.cancelHook = cancelHook;
+			})
+		};
+		if(opt.srcFile){
+			if(!(opt.srcFile instanceof window.File) && !(opt.srcFile instanceof window.Blob)){
+				return bc(new Error('source file must be an instance of window.File or window.Blob'), null);
+			}
+			
+			let srcFile = opt.srcFile;
+			try{
+				if(opt.Offset >= 0 && opt.PartSize > 0){
+					srcFile = this.sliceBlob(srcFile, opt.Offset, opt.Offset + opt.PartSize);
+				}else if('ContentLength' in opt){
+					let contentLength = parseInt(opt.ContentLength);
+					if(contentLength > 0){
+						srcFile = this.sliceBlob(srcFile, 0, contentLength);
+					}
+				}
+			}catch (e) {
+				return bc(e);
+			}
+			
+			reopt.data = srcFile;
+			axios.request(reopt).then(function (response) {
+				log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
+				that.getRequest(methodName, response, signatureContext, retryCount, bc);
+			}).catch(function (err) {
+				let headerStr = headerTostring(err);
+				log.runLog('error', methodName, 'Send request to service error [' + headerStr + ']');
+				log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
+				bc(err, null);
+			});
+		}else{
+			axios.request(reopt).then(function (response) {
+				log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
+				that.getRequest(methodName, response, signatureContext, retryCount, bc);
+			}).catch(function (err) {
+				let headerStr = headerTostring(err);
+				log.runLog('error', methodName, 'Send request to service error [' + headerStr + ']');
+				log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
+				bc(err, null);
+			});
+		}
+		return;
 	}
 	
-	var reopt = {
-		method : method,
-		baseURL : _isSecure ? 'https://' + this.urlPrefix + host + ':' + port : 'http://' + this.urlPrefix + host + ':' + port,
-		url : path,
-		withCredentials: false, 
-		headers : ex,
-		validateStatus: function(status){
-			return status >= 200;
-		},
-		maxRedirects : 0,
-		responseType : responseType,
-		data : body,
-		timeout : this.timeout * 1000,
-		onUploadProgress : onUploadProgress,
-		onDownloadProgress : onDownloadProgress,
-		cancelToken : new axios.CancelToken(function(cancelHook){
-			opt.$requestParam.cancelHook = cancelHook;
-		})
-	};
-	var that = this;
+	var xhr = null;
+	//Firefox, Opera 8.0+, Safari
+	try{
+        xhr = new XMLHttpRequest();
+    }catch (e){
+        try{//InternetExplorer
+	 		xhr = new ActiveXObject("Msxml2.XMLHTTP");
+        }catch (e1){
+             try{
+                xhr = new ActiveXObject("Microsoft.XMLHTTP");
+             }catch (e2){} 
+        }
+    }
+ 	
+ 	if(xhr === null){
+ 		return bc(new Error('XHR is not available'), null);
+ 	}
+	
 	if(opt.srcFile){
 		if(!(opt.srcFile instanceof window.File) && !(opt.srcFile instanceof window.Blob)){
 			return bc(new Error('source file must be an instance of window.File or window.Blob'), null);
 		}
 		
-		let srcFile = opt.srcFile;
-		if(opt.Offset >= 0 && opt.PartSize > 0){
-			srcFile = this.sliceBlob(srcFile, opt.Offset, opt.Offset + opt.PartSize);
-		}else if('ContentLength' in opt){
-			let contentLength = parseInt(opt.ContentLength);
-			if(contentLength > 0){
-				srcFile = this.sliceBlob(srcFile, 0, contentLength);
+		try{
+			let srcFile = opt.srcFile;
+			if(opt.Offset >= 0 && opt.PartSize > 0){
+				srcFile = this.sliceBlob(srcFile, opt.Offset, opt.Offset + opt.PartSize);
+			}else if('ContentLength' in opt){
+				let contentLength = parseInt(opt.ContentLength);
+				if(contentLength > 0){
+					srcFile = this.sliceBlob(srcFile, 0, contentLength);
+				}
 			}
+		}catch (e) {
+			return bc(e);
 		}
 		
-		reopt.data = srcFile;
-		axios.request(reopt).then(function (response) {
+		body = srcFile;
+	}
+	xhr.open(method, (_isSecure ? 'https://' + this.urlPrefix + host : 'http://' + this.urlPrefix + host) + path);
+	xhr.withCredentials = false;
+	for(let key in ex){
+		xhr.setRequestHeader(key, ex[key]);
+	}
+	xhr.timeout = that.timeout * 1000;
+	xhr.responseType = responseType;
+	opt.$requestParam.cancelHook = function(){
+		xhr.abort();
+	};
+	xhr.onreadystatechange = function(){
+		if(xhr.readyState === 4 && xhr.status >= 200) {
 			log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
+			var headers = xhr.getAllResponseHeaders();
+		    var arr = headers.trim().split(/[\r\n]+/);
+		    var headerMap = {};
+		    for(let i=0;i<arr.length;i++){
+		    	let line = arr[i];
+		    	let parts = line.split(': ');
+			    let header = parts.shift();
+			    let value = parts.join(': ');
+			    headerMap[header.toLowerCase()] = value;
+		    }
+		    var data = xhr.response;
+		    if(!data && (responseType === '' || responseType === 'text')){
+		    	data = xhr.responseText;
+		    }
+			var response = {
+				status : xhr.status,
+				headers : headerMap,
+				data : data
+			};
 			that.getRequest(methodName, response, signatureContext, retryCount, bc);
-		}).catch(function (err) {
-			let headerStr = headerTostring(err);
-			log.runLog('error', methodName, 'Send request to service error [' + headerStr + ']');
-			log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
-			bc(err, null);
-		});
-	}else{
-		axios.request(reopt).then(function (response) {
-			log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
-			that.getRequest(methodName, response, signatureContext, retryCount, bc);
-		}).catch(function (err) {
-			let headerStr = headerTostring(err);
-			log.runLog('error', methodName, 'Send request to service error [' + headerStr + ']');
-			log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
-			bc(err, null);
-		});
+		}
+	};
+	
+	var handled = false;
+	var errHandler = function(err){
+		if(handled){
+			return;
+		}
+		handled = true;
+		let headerStr = headerTostring(err);
+		log.runLog('error', methodName, 'Send request to service error [' + headerStr + ']');
+		log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
+		bc(err, null);
+	};
+	
+	//For the compatibility with Axios
+	xhr.ontimeout = function(){
+		errHandler(new Error('timeout of ' + xhr.timeout + 'ms exceed'));
+	};
+	
+	//For the compatibility with Axios
+	xhr.onerror = function(){
+		errHandler(new Error('Network Error'));
+	};
+	
+	//For the compatibility with Axios
+	xhr.onabort = function(){
+		errHandler(new Error('Cancel'));
+	};
+	
+	if(xhr.upload){
+		//For the compatibility with Axios
+		xhr.upload.ontimeout = function(){
+			errHandler(new Error('timeout of ' + xhr.timeout + 'ms exceed'));
+		};
+		
+		//For the compatibility with Axios
+		xhr.upload.onerror = function(){
+			errHandler(new Error('Network Error'));
+		};
+		
+		//For the compatibility with Axios
+		xhr.upload.onabort = function(e){
+			errHandler(new Error('Cancel'));
+		};
 	}
 	
+	if(isFunction(opt.ProgressCallback)){
+		if(method === 'GET' || !xhr.upload){
+			xhr.onprogress = function(event){
+				if(event.lengthComputable){
+					opt.ProgressCallback(event.loaded, event.total, (new Date().getTime() - start) / 1000);
+				}
+			};
+		}else if(method === 'PUT' || method === 'POST'){
+			xhr.upload.onprogress = function(event){
+				if(event.lengthComputable){
+					opt.ProgressCallback(event.loaded, event.total, (new Date().getTime() - start) / 1000);
+				}
+			};
+		}
+	}
+	xhr.send(body);
 };
 
 Utils.prototype.sendRequest = function(funcName, opt, backcall, retryCount){

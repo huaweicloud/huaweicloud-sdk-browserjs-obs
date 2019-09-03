@@ -1,4 +1,16 @@
 
+Version 3.19.7
+
+New features:
+1. [Function] Added useRawXhr as an ObsClient initialization parameter, supporting the selection of Axios or the execution of Ajax requests by the native XHR.
+
+Documentation & Demo:
+
+Resolved issues:
+1. [Security] Upgraded the third-party dependency axios to 0.19.0 to fix issue CVE-2019-10742.
+
+-----------------------------------------------------------------------------------
+
 Version 3.19.5
 
 New features:

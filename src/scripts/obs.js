@@ -294,7 +294,8 @@ ObsClient.prototype.factory = function(param){
 	this.util = new Utils(this.log);
 	param = param || {};
 	this.util.initFactory(param.access_key_id, param.secret_access_key, param.is_secure,
-			param.server, param.path_style, param.signature, param.region, param.port, param.timeout, param.security_token, param.is_signature_negotiation, param.is_cname, param.url_prefix, param.region_domains,param.setRequestHeaderHook);
+			param.server, param.path_style, param.signature, param.region, param.port, param.timeout, param.security_token, param.is_signature_negotiation, 
+			param.is_cname, param.url_prefix, param.region_domains, param.setRequestHeaderHook, param.useRawXhr);
 };
 
 ObsClient.prototype.refresh = function(access_key_id, secret_access_key, security_token){

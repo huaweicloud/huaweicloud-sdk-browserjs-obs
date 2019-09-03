@@ -2585,13 +2585,11 @@ const operations = {
             },
             'SseKms': {
                 'location': 'header',
-                'sentAs': 'server-side-encryption',
-                'withPrefix': true
+                'sentAs': 'x-obs-server-side-encryption'
             },
             'SseKmsKey': {
                 'location': 'header',
-                'sentAs': 'server-side-encryption-aws-kms-key-id',
-                'withPrefix': true
+                'sentAs': 'x-obs-server-side-encryption-kms-key-id'
             },
             'SseC': {
                 'location': 'header',
