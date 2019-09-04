@@ -440,7 +440,7 @@
 				
 				uploadCheckpoint.md5 = calculateUploadCheckpointMD5(uploadCheckpoint);
 			}else{
-				let sourceFile = uploadCheckpoint.SourceFile;
+				let sourceFile = uploadCheckpoint.sourceFile;
 				if(!(sourceFile instanceof window.File) && !(sourceFile instanceof window.Blob)){
 					return _callback('source file is not valid, must be an instanceof [File | Blob]');
 				}
