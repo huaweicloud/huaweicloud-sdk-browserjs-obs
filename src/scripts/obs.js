@@ -34,6 +34,8 @@ function capitalize(key){
 }
 
 const methods = [
+	'createBucket',
+	'listBuckets',
 	'getBucketMetadata',
 	'headBucket',
 	'deleteBucket',

@@ -30,7 +30,7 @@ const owner = {
 	'sentAs' : 'Owner',
 	'parameters' : {
 		'ID' : {
-			'sentAs' : 'ID',
+			'sentAs' : 'ID'
 		}
 	}
 };
@@ -587,11 +587,11 @@ const operations = {
 		'parameters' : {
 			'Bucket' : {
 				'required' : true,
-				'location' : 'uri',
-			},
-		},
+				'location' : 'uri'
+			}
+		}
 	},
-	
+
 	'HeadApiVersion' : {
 		'httpMethod' : 'HEAD',
 		'urlPath' : 'apiversion',
@@ -607,7 +607,75 @@ const operations = {
 			'ApiVersion' : {
 				'location' : 'header',
 				'sentAs' : 'x-obs-api'
+			}
+		}
+	},
+
+	'CreateBucket' : {
+		'httpMethod' : 'PUT',
+		'data' : {
+			'xmlRoot' : 'CreateBucketConfiguration'
+		},
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
 			},
+			'ACL' : {
+				'location' : 'header',
+				'sentAs' : 'acl',
+				'withPrefix': true
+			},
+			'StorageType':{
+				'location' : 'header',
+				'sentAs' : 'storage-class',
+				'withPrefix': true
+			},
+			'FileInterface':{
+				'location' : 'header',
+				'sentAs' : 'fs-file-interface',
+				'withPrefix': true
+			},
+			'MultiAz':{
+				'location' : 'header',
+				'sentAs' : 'az-redundancy',
+				'withPrefix': true
+			},
+			'GrantFullControl':{
+				'location' : 'header',
+				'sentAs' : 'grant-full-control',
+				'withPrefix': true
+			},
+			'GrantRead':{
+				'location' : 'header',
+				'sentAs' : 'grant-read',
+				'withPrefix': true
+			},
+			'GrantReadACP':{
+				'location' : 'header',
+				'sentAs' : 'grant-read-acp',
+				'withPrefix': true
+			},
+			'GrantWrite':{
+				'location' : 'header',
+				'sentAs' : 'grant-write',
+				'withPrefix': true
+			},
+			'GrantWriteACP':{
+				'location' : 'header',
+				'sentAs' : 'grant-write-acp',
+				'withPrefix': true
+			},
+			'ClusterType': {
+				'location' : 'header',
+				'sentAs' : 'cluster-type',
+				'withPrefix': true
+			},
+			"MultiEnterprise": {"location": "header", 'sentAs': "epid", 'withPrefix': true},
+			"Location": {
+				"location": "xml",
+				"sentAs": "Location"
+			}
 		}
 	},
 
@@ -647,6 +715,26 @@ const operations = {
 				'sentAs' : 'bucket-location',
 				'withPrefix' : true
 			},
+			'FileInterface': {
+				'location': 'header',
+				'sentAs': 'fs-file-interface',
+				'withPrefix' : true
+			},
+			'MultiAz': {
+				"location": 'header',
+				'sentAs': 'az-redundancy',
+				'withPrefix' : true
+			},
+			'MultiEnterprise': {
+				'location': 'header',
+				'sentAs': 'epid',
+				'withPrefix' : true
+			},
+			'ClusterType': {
+				"location": 'header',
+				'sentAs': 'cluster-type',
+				'withPrefix' : true
+			},
 			'AllowOrigin' : {
 				'location' : 'header',
 				'sentAs' : 'access-control-allow-origin'
@@ -678,6 +766,67 @@ const operations = {
 				'location' : 'uri',
 			},
 		},
+	},
+
+	"ListBuckets": {
+		'httpMethod' : 'GET',
+		"parameters": {
+			"Type":{
+				'sentAs': "x-obs-bucket-type",
+				"location":"header"
+			},
+            "Location": {
+                "sentAs": "location",
+                "location":"header",
+                "withPrefix": true
+            }
+		}
+	},
+	'ListBucketsOutput': {
+		'data' : {
+			'type' : 'xml',
+			'xmlRoot' : 'ListAllMyBucketsResult'
+		},
+		'parameters': {
+			Buckets: {
+				location: "xml",
+				sentAs: "Bucket",
+				type: "array",
+				wrapper : 'Buckets',
+				items: {
+					type: "object",
+					location: "xml",
+					sentAs: "Bucket",
+					parameters: {
+						Name: {
+							sentAs: "Name"
+						},
+						CreationDate: {
+							sentAs: "CreationDate"
+						},
+						Location: {
+							sentAs: "Location"
+						},
+						ClusterType: {
+							sentAs: "ClusterType"
+						}
+					}
+				}
+			},
+			'Owner': {
+				'type' : 'object',
+				'location' : 'xml',
+				'sentAs' : 'Owner',
+				'parameters' : {
+					'ID' : {
+						'sentAs' : 'ID'
+					},
+					'DisplayName' : {
+						'sentAs' : 'DisplayName'
+					}
+				}
+			}
+		}
 	},
 
 	'ListObjects' : {
@@ -1577,7 +1726,7 @@ const operations = {
 		'parameters' : {
 			'RequestId' : {
 				'location' : 'header',
-				'sentAs' : 'x-amz-request-id',
+				'sentAs' : 'x-obs-request-id',
 			},
 			'TopicConfigurations' : topicConfiguration,
 			'FunctionGraphConfigurations' : functionGraphConfiguration,

@@ -138,7 +138,7 @@ const urlLib = {
 };
 
 const CONTENT_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-const OBS_SDK_VERSION = '3.19.7';
+const OBS_SDK_VERSION = '3.19.9';
 
 const mimeTypes = {
     '7z' : 'application/x-7z-compressed',
@@ -1225,7 +1225,7 @@ Utils.prototype.contrustCommonMsg = function(opt, obj, headers, signatureContext
 };
 
 
-Utils.prototype.getRequest = function(methodName, serverback, signatureContext, retryCount, bc){
+Utils.prototype.getRequest = function(methodName, serverback, signatureContext, retryCount, params, bc){
     var regionDomains = this.regionDomains;
 	var opt = {};
 	var log = this.log;
@@ -1265,6 +1265,9 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
 		let bucketLocation = headers['x-amz-bucket-region'] || headers['x-obs-bucket-location'];
 		if (bucketLocation && regionDomains[bucketLocation]) {
             let regionServer = (this.isSecure ? 'https://' : 'http://') + regionDomains[bucketLocation];
+			if (isFunction(this.setRequestHeaderHook)) {
+				this.setRequestHeaderHook(headers, params, methodName, regionDomains[bucketLocation]);
+			}
             let err = 'get redirect code 3xx, need to redirect to' + regionServer;
             log.runLog('error', methodName, err);
             let redirectErr = new Error('redirect');
@@ -1468,7 +1471,7 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 
 	var ex = opt.headers;
     if (isFunction(this.setRequestHeaderHook)) {
-        this.setRequestHeaderHook(ex, opt.$requestParam);
+        this.setRequestHeaderHook(ex, opt.$requestParam, methodName);
     }
 	var host = ex.Host;
 	let method = opt.method;
@@ -1514,11 +1517,15 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 				onUploadProgress = progressListener;
 			}
 		}
-		
+		var portInfo = ':' + port;
+		if (host.indexOf(':') >=0 ) {
+			portInfo = '';
+		}
+		var baseUrl = _isSecure ? 'https://' + this.urlPrefix + host + portInfo : 'http://' + this.urlPrefix + host + portInfo;
 		var reopt = {
 			method : method,
-			baseURL : _isSecure ? 'https://' + this.urlPrefix + host + ':' + port : 'http://' + this.urlPrefix + host + ':' + port,
-			url : path,
+			//fix bug, axios will abandon the base url if the request url starts with '//', so use the completed url to avoid it
+			url : baseUrl + path,
 			withCredentials: false, 
 			headers : ex,
 			validateStatus: function(status){
@@ -1556,7 +1563,7 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 			reopt.data = srcFile;
 			axios.request(reopt).then(function (response) {
 				log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
-				that.getRequest(methodName, response, signatureContext, retryCount, bc);
+				that.getRequest(methodName, response, signatureContext, retryCount, opt.$requestParam, bc);
 			}).catch(function (err) {
 				let headerStr = headerTostring(err);
 				log.runLog('error', methodName, 'Send request to service error [' + headerStr + ']');
@@ -1566,7 +1573,7 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 		}else{
 			axios.request(reopt).then(function (response) {
 				log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
-				that.getRequest(methodName, response, signatureContext, retryCount, bc);
+				that.getRequest(methodName, response, signatureContext, retryCount, opt.$requestParam, bc);
 			}).catch(function (err) {
 				let headerStr = headerTostring(err);
 				log.runLog('error', methodName, 'Send request to service error [' + headerStr + ']');
@@ -1648,7 +1655,7 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 				headers : headerMap,
 				data : data
 			};
-			that.getRequest(methodName, response, signatureContext, retryCount, bc);
+			that.getRequest(methodName, response, signatureContext, retryCount, opt.$requestParam, bc);
 		}
 	};
 	
@@ -1748,15 +1755,29 @@ Utils.prototype.doAuth = function(opt, methodName, signatureContext) {
 	stringToSign += '\n';
 	
 	var temp = [];
-	for(let key in opt.headers){
-		if (key.toLowerCase().indexOf(signatureContext.headerPrefix) === 0){
-			temp.push(key.toLowerCase());
+	for(let originKey in opt.headers){
+		let lowerKey = originKey.toLowerCase();
+		if (lowerKey.indexOf(signatureContext.headerPrefix) === 0){
+			temp.push({
+				key: lowerKey,
+				value: opt.headers[originKey]
+			});
 		}
+
+
 	}
-	temp = temp.sort();
+	temp = temp.sort(function (obj1, obj2) {
+		if (obj1.key < obj2.key) {
+			return -1;
+		}
+		if (obj1.key > obj2.key) {
+			return 1;
+		}
+		return 0;
+	});
 	for(let i=0;i<temp.length;i++){
-		let key = temp[i];
-		let val = key.indexOf(signatureContext.headerMetaPrefix) === 0  ? opt.headers[key].trim() : opt.headers[key];
+		let key = temp[i].key;
+		let val = key.indexOf(signatureContext.headerMetaPrefix) === 0  ? temp[i].value.trim() : temp[i].value;
 		stringToSign += key + ':' + val + '\n';
 	}
 	

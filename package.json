@@ -1,6 +1,6 @@
 {
   "name": "esdk-obs-browserjs",
-  "version": "3.19.7",
+  "version": "3.19.9",
   "description": "esdk-obs-browserjs",
   "engines": {
     "node": ">=0.12.7"

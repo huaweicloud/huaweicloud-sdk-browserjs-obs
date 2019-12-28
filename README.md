@@ -1,4 +1,15 @@
 
+Version 3.19.9
+
+New features:
+
+Documentation & Demo:
+
+Resolved issues:
+1. [Function] Fixed the issue that the domain name is lost when Axios deals with a URL starts with //.
+
+-----------------------------------------------------------------------------------
+
 Version 3.19.7
 
 New features:
