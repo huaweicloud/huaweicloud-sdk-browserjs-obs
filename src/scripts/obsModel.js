@@ -14,15 +14,13 @@
  */
 
 (function (root, factory) {
-  'use strict';
   if(typeof define === 'function' && define.amd){
 	  define('obsModel', [], factory);
   }else{
 	  root['obsModel'] = factory();
   }
 })(this ? this : window, function(){
-	
-'use strict';
+
 
 const owner = {
 	'type' : 'object',
@@ -45,6 +43,88 @@ const initiator = {
 		},
 	},
 };
+
+const BackToSourceRules = {
+	'sentAs' : 'BackToSourceRule',
+	'required' : true,
+	'location' : 'xml',
+	'type': "array",
+	'items': {
+		'type': "object",
+		'parameters': {
+			'ID': {
+				'sentAs': "ID"
+			},
+			'Condition': {
+				'sentAs': "Condition",
+				'type': "object",
+				'parameters':{
+					'ObjectKeyPrefixEquals': {
+						'sentAs': 'ObjectKeyPrefixEquals'
+					},
+					'HttpErrorCodeReturnedEquals': {
+						'sentAs': 'HttpErrorCodeReturnedEquals'
+					}
+				},
+			},
+			'Redirect': {
+				'sentAs': "Redirect",
+				'type': "object",
+				'parameters': {
+					'HttpRedirectCode': {
+						'sentAs': 'HttpRedirectCode'
+					},
+					'SourceEndpoint': {
+						'sentAs': 'SourceEndpoint'
+					},
+					'SourceBucketName': {
+						'sentAs': 'SourceBucketName'
+					},
+					'ReplaceKeyWith': {
+						'sentAs': 'ReplaceKeyWith'
+					},
+					'StaticUri': {
+						'sentAs': 'StaticUri'
+					},
+					'ReplaceKeyPrefixWith': {
+						'sentAs': 'ReplaceKeyPrefixWith'
+					},
+					'MigrationConfiguration': {
+						'sentAs': 'MigrationConfiguration',
+						'type': 'object',
+						'parameters': {
+							'Agency': {
+								'sentAs': 'Agency',
+							},
+							'LogBucketName': {
+								'sentAs': 'LogBucketName',
+							},
+							'PrivateBucketConfiguration': {
+								'sentAs': 'PrivateBucketConfiguration',
+								'type': 'object',
+								'parameters': {
+									'SourceStorageProvider': {
+										'sentAs': 'SourceStorageProvider'
+									},
+									'SourceBucketAK': {
+										'sentAs': 'SourceBucketAK'
+									},
+									'SourceBucketSK': {
+										'sentAs': 'SourceBucketSK'
+									},
+									'SourceBucketZone': {
+										'sentAs': 'SourceBucketZone'
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+};
+
 const commonPrefixes = {
 	'type' : 'array',
 	'location' : 'xml',
@@ -53,8 +133,15 @@ const commonPrefixes = {
 		'type' : 'object',
 		'parameters' : {
 			'Prefix' : {
+				'decode' : true,
 				'sentAs' : 'Prefix',
 			},
+			'MTime': {
+				'sentAs': 'MTime',
+			},
+			'InodeNo': {
+				'sentAs': 'InodeNo',
+			}
 		}
 	}
 };
@@ -76,10 +163,12 @@ const grants = {
 						},
 						'ID' : {
 							'sentAs' : 'ID',
+						  'notAllowEmpty' : true,
 						},
 						'URI' : {
 							'sentAs' :  'Canned',
-							'type' : 'adapter'
+							'type' : 'adapter',
+						  'notAllowEmpty' : true,
 						}
 					},
 				},
@@ -182,10 +271,20 @@ const rules = {
 					},
 					'Days' : {
 						'type' : 'number',
-						'sentAs' : 'Days',
+						'sentAs' : 'Days'
 					},
 				},
 			},
+            'AbortIncompleteMultipartUpload' : {
+                'type' : 'object',
+                'sentAs' : 'AbortIncompleteMultipartUpload',
+                'parameters' : {
+                    'DaysAfterInitiation' : {
+                        'type' : 'number',
+                        'sentAs' : 'DaysAfterInitiation',
+                    },
+                },
+            },
 			'NoncurrentVersionTransitions' :{
 				'type' : 'array',
 				'sentAs' : 'NoncurrentVersionTransition',
@@ -374,7 +473,7 @@ const functionGraphConfiguration = {
 				}
 			},
 			'FunctionGraph' : {},
-	
+
 			'Event' : {
 				'type' : 'array',
 				'items' : {
@@ -382,7 +481,7 @@ const functionGraphConfiguration = {
 				}
 			}
 		}
-	}	
+	}
 };
 
 const topicConfiguration = {
@@ -414,7 +513,7 @@ const topicConfiguration = {
 					}
 				},
 				'Topic' : {},
-		
+
 				'Event' : {
 					'type' : 'array',
 					'items' : {
@@ -423,6 +522,46 @@ const topicConfiguration = {
 				}
 			}
 		}
+};
+
+const functionStageConfiguration = {
+	'type' : 'array',
+	'location' : 'xml',
+	'sentAs' : 'FunctionStageConfiguration',
+	'items' : {
+		'type' : 'object',
+		'location' : 'xml',
+		'parameters' : {
+			'ID' : {
+				'sentAs' : 'Id'
+			},
+			'Filter' : {
+				'type' : 'object',
+				'parameters' : {
+					'FilterRules' : {
+						'wrapper' : 'Object',
+						'type' : 'array',
+						'sentAs' : 'FilterRule',
+						'items' : {
+							'type' : 'object',
+							'parameters' : {
+								'Name' : {},
+								'Value' : {}
+							}
+						}
+					}
+				}
+			},
+			'FunctionStage' : {},
+	
+			'Event' : {
+				'type' : 'array',
+				'items' : {
+					'type' : 'adapter',
+				}
+			}
+		}
+	}	
 };
 
 const tagSet = {
@@ -474,6 +613,9 @@ const replicationRules = {
 							'type' : 'adapter'
 						}
 					}
+				},
+				'HistoricalObjectReplication': {
+					'sentAs': 'HistoricalObjectReplication'
 				}
 			},
 		}
@@ -492,6 +634,9 @@ const replicationRules = {
 					},
 					'KMSMasterKeyID': {
 						'sentAs': 'KMSMasterKeyID'
+					},
+					'ProjectID': {
+						'sentAs': 'ProjectID'
 					}
 				}
 			}
@@ -579,6 +724,28 @@ const replicationRules = {
 			}
 		}
 	};
+	const CDNNotifyConfiguration = {
+		'location': 'xml',
+		'sentAs': 'Domain',
+		'type': 'array',
+		'items': {
+			'type': 'object',
+			'parameters': {
+				'Name': {
+					'type': 'string',
+					'sentAs': 'Name'
+				},
+				'Event': {
+					'type': 'array',
+					'items': {
+						'type': 'adapter',
+					},
+					'sentAs': 'Event'
+
+				}
+			}
+		}
+	};
 
 const operations = {
 
@@ -601,7 +768,7 @@ const operations = {
 			},
 		},
 	},
-	
+
 	'HeadApiVersionOutput' : {
 		'parameters' : {
 			'ApiVersion' : {
@@ -636,9 +803,19 @@ const operations = {
 				'sentAs' : 'fs-file-interface',
 				'withPrefix': true
 			},
+			'Type':{
+				'location' : 'header',
+				'sentAs': 'bucket-type',
+				'withPrefix': true
+			},
 			'MultiAz':{
 				'location' : 'header',
 				'sentAs' : 'az-redundancy',
+				'withPrefix': true
+			},
+			'Cluster': {
+				'location' : 'header',
+				'sentAs' : 'location-clustergroup-id',
 				'withPrefix': true
 			},
 			'GrantFullControl':{
@@ -720,10 +897,20 @@ const operations = {
 				'sentAs': 'fs-file-interface',
 				'withPrefix' : true
 			},
+			'Type':{
+				'location' : 'header',
+				'sentAs': 'bucket-type',
+				'withPrefix': true
+			},
 			'MultiAz': {
 				"location": 'header',
 				'sentAs': 'az-redundancy',
 				'withPrefix' : true
+			},
+			'Cluster': {
+				'location' : 'header',
+				'sentAs' : 'location-clustergroup-id',
+				'withPrefix': true
 			},
 			'MultiEnterprise': {
 				'location': 'header',
@@ -853,6 +1040,10 @@ const operations = {
 				'location' : 'urlPath',
 				'sentAs' : 'delimiter',
 			},
+			'EncodingType' : {
+				'location' : 'urlPath',
+				'sentAs' : 'encoding-type'
+			},
 		},
 	},
 
@@ -872,6 +1063,7 @@ const operations = {
 				'sentAs' : 'Name',
 			},
 			'Delimiter' : {
+				'decode' : true,
 				'location' : 'xml',
 				'sentAs' : 'Delimiter',
 			},
@@ -880,20 +1072,27 @@ const operations = {
 				'sentAs' : 'IsTruncated',
 			},
 			'Prefix' : {
+				'decode' : true,
 				'location' : 'xml',
 				'sentAs' : 'Prefix',
 			},
 			'Marker' : {
+				'decode' : true,
 				'location' : 'xml',
 				'sentAs' : 'Marker',
 			},
 			'NextMarker' : {
+				'decode' : true,
 				'location' : 'xml',
 				'sentAs' : 'NextMarker',
 			},
 			'MaxKeys' : {
 				'location' : 'xml',
 				'sentAs' : 'MaxKeys',
+			},
+			'EncodingType' : {
+				'location' : 'xml',
+				'sentAs' : 'EncodingType',
 			},
 			'Contents' : {
 				'type' : 'array',
@@ -903,6 +1102,7 @@ const operations = {
 					'type' : 'object',
 					'parameters' : {
 						'Key' : {
+							'decode' : true,
 							'sentAs' : 'Key',
 						},
 						'LastModified' : {
@@ -958,15 +1158,23 @@ const operations = {
 				'location' : 'urlPath',
 				'sentAs' : 'version-id-marker',
 			},
+			'EncodingType' : {
+				'location' : 'urlPath',
+				'sentAs' : 'encoding-type',
+			},
 		},
 	},
-	
+
 	'ListVersionsOutput' : {
 		'data' : {
 			'type' : 'xml',
 			'xmlRoot' : 'ListVersionsResult',
 		},
 		'parameters' : {
+			'EncodingType' : {
+				'location' : 'xml',
+				'sentAs' : 'EncodingType',
+			},
 			'Location' : {
 				'location' : 'header',
 				'sentAs' : 'bucket-location',
@@ -977,14 +1185,17 @@ const operations = {
 				'sentAs' : 'Name',
 			},
 			'Prefix' : {
+				'decode' : true,
 				'location' : 'xml',
 				'sentAs' : 'Prefix',
 			},
 			'Delimiter' : {
+				'decode' : true,
 				'location' : 'xml',
 				'sentAs' : 'Delimiter',
 			},
 			'KeyMarker' : {
+				'decode' : true,
 				'location' : 'xml',
 				'sentAs' : 'KeyMarker',
 			},
@@ -993,6 +1204,7 @@ const operations = {
 				'sentAs' : 'VersionIdMarker',
 			},
 			'NextKeyMarker' : {
+				'decode' : true,
 				'location' : 'xml',
 				'sentAs' : 'NextKeyMarker',
 			},
@@ -1016,6 +1228,7 @@ const operations = {
 					'type' : 'object',
 					'parameters' : {
 						'Key' : {
+							'decode' : true,
 							'sentAs' : 'Key',
 						},
 						'VersionId' : {
@@ -1051,6 +1264,7 @@ const operations = {
 					'type' : 'object',
 					'parameters' : {
 						'Key' : {
+							'decode' : true,
 							'sentAs' : 'Key',
 						},
 						'VersionId' : {
@@ -1067,6 +1281,57 @@ const operations = {
 				},
 			},
 			'CommonPrefixes' : commonPrefixes
+		},
+	},
+
+	'PutBackToSource': {
+		'httpMethod' : 'PUT',
+		'data' : {
+			'xmlRoot' : 'BackToSourceConfiguration',
+		},
+		'urlPath' : 'backtosource',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			},
+			'BackToSourceRules': BackToSourceRules,
+			'ContentMD5': {
+				'location' : 'header',
+				'sentAs' : 'Content-MD5',
+			}
+		}
+	},
+
+	'DeleteBackToSource' : {
+		'httpMethod' : 'DELETE',
+		'urlPath' : 'backtosource',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			}
+		}
+	},
+
+	'GetBackToSource' : {
+		'httpMethod' : 'GET',
+		'urlPath' : 'backtosource',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			}
+		}
+	},
+
+	'GetBackToSourceOutput' : {
+		'data' : {
+			'type' : 'xml',
+			'xmlRoot' : 'BackToSourceConfiguration',
+		},
+		'parameters' : {
+			'BackToSourceRules' : BackToSourceRules
 		},
 	},
 
@@ -1103,7 +1368,7 @@ const operations = {
 			},
 		},
 	},
-	
+
 	'GetBucketStorageInfoOutput' : {
 		'data' : {
 			'type' : 'xml',
@@ -1397,6 +1662,51 @@ const operations = {
 		},
 	},
 
+	'SetSFSAcl' : {
+		'httpMethod' : 'PUT',
+		'urlPath' : 'sfsacl',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri',
+			},
+			'Policy' : {
+				'required' : true,
+				'location' : 'body',
+			},
+		},
+	},
+	'GetSFSAcl' : {
+		'httpMethod' : 'GET',
+		'urlPath' : 'sfsacl',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri',
+			},
+		},
+	},
+	'GetSFSAclOutput' : {
+		'data' : {
+			'type' : 'body',
+		},
+		'parameters' : {
+			'Policy' : {
+				'location' : 'body',
+			},
+		},
+	},
+	'DeleteSFSAcl' : {
+		'httpMethod' : 'DELETE',
+		'urlPath' : 'sfsacl',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri',
+			},
+		},
+	},
+
 	'SetBucketPolicy' : {
 		'httpMethod' : 'PUT',
 		'urlPath' : 'policy',
@@ -1444,6 +1754,7 @@ const operations = {
 
 	'SetBucketDisPolicy': {
 		'httpMethod': 'PUT',
+		'urlPath' : 'disPolicy',
 		'parameters' : {
 			'Bucket' : {
 				'required' : true,
@@ -1451,10 +1762,6 @@ const operations = {
 			},
 			'ApiPath': {
 				'location': 'uri',
-			},
-			'OEFMarker': {
-				'location' : 'header',
-				'sentAs' : 'x-obs-oef-marker'
 			},
 			'Rules' : {
 				'required' : true,
@@ -1465,6 +1772,7 @@ const operations = {
 
 	'GetBucketDisPolicy': {
 		'httpMethod': 'GET',
+		'urlPath' : 'disPolicy',
 		'parameters' : {
 			'Bucket' : {
 				'required' : true,
@@ -1473,9 +1781,9 @@ const operations = {
 			'ApiPath': {
 				'location': 'uri',
 			},
-			'OEFMarker': {
+			'ContentType' : {
 				'location' : 'header',
-				'sentAs' : 'x-obs-oef-marker'
+				'sentAs' : 'Content-Type'
 			}
 		}
 	},
@@ -1493,6 +1801,7 @@ const operations = {
 
 	'DeleteBucketDisPolicy': {
 		'httpMethod' : 'DELETE',
+		'urlPath' : 'disPolicy',
 		'parameters' : {
 			'Bucket' : {
 				'required' : true,
@@ -1500,10 +1809,6 @@ const operations = {
 			},
 			'ApiPath': {
 				'location': 'uri',
-			},
-			'OEFMarker': {
-				'location' : 'header',
-				'sentAs' : 'x-obs-oef-marker'
 			}
 		},
 	},
@@ -1704,6 +2009,7 @@ const operations = {
 			},
 			'TopicConfigurations' : topicConfiguration,
 			'FunctionGraphConfigurations' : functionGraphConfiguration,
+			'FunctionStageConfigurations': functionStageConfiguration
 		}
 	},
 
@@ -1730,6 +2036,7 @@ const operations = {
 			},
 			'TopicConfigurations' : topicConfiguration,
 			'FunctionGraphConfigurations' : functionGraphConfiguration,
+			'FunctionStageConfigurations': functionStageConfiguration
 		},
 	},
 
@@ -1780,7 +2087,7 @@ const operations = {
 			'Tags' : tagSet
 		}
 	},
-	
+
 	'SetBucketStoragePolicy' : {
 		'httpMethod' : 'PUT',
 		'urlPath' : 'storageClass',
@@ -1797,7 +2104,7 @@ const operations = {
 			}
 		}
 	},
-	
+
 	'GetBucketStoragePolicy' :{
 		'httpMethod' : 'GET',
 		'urlPath' : 'storageClass',
@@ -1808,7 +2115,7 @@ const operations = {
 			},
 		}
 	},
-	
+
 	'GetBucketStoragePolicyOutput' :{
 		'data' : {
 			'type' : 'xml',
@@ -1821,7 +2128,7 @@ const operations = {
 			}
 		}
 	},
-	
+
 	'SetBucketReplication' : {
 		'httpMethod' : 'PUT',
 		'urlPath' : 'replication',
@@ -1969,6 +2276,11 @@ const operations = {
 				'sentAs' : 'server-side-encryption-kms-key-id',
 				'withPrefix' : true,
 			},
+			'SseKmsProjectId' :{
+				'location' : 'header',
+				'sentAs': 'sse-kms-key-project-id',
+				'withPrefix' : true,
+			},
 			'SseC' :{
 				'location' : 'header',
 				'sentAs' : 'server-side-encryption-customer-algorithm',
@@ -2017,6 +2329,11 @@ const operations = {
 				'sentAs' : 'server-side-encryption-kms-key-id',
 				'withPrefix' : true,
 			},
+			'SseKmsProjectId' :{
+				'location' : 'header',
+				'sentAs': 'sse-kms-key-project-id',
+				'withPrefix' : true,
+			},
 			'SseC' :{
 				'location' : 'header',
 				'sentAs' : 'server-side-encryption-customer-algorithm',
@@ -2029,7 +2346,7 @@ const operations = {
 			}
 		},
 	},
-	
+
 	'AppendObject' : {
 		'httpMethod' : 'POST',
 		'urlPath' : 'append',
@@ -2183,7 +2500,7 @@ const operations = {
 			}
 		},
 	},
-	
+
 	'GetObject' : {
 		'httpMethod' : 'GET',
 		'parameters' : {
@@ -2341,7 +2658,7 @@ const operations = {
 			'StorageClass' : {
 				'location' : 'header',
 				'sentAs' : 'storage-class',
-				'withPrefix' : true	
+				'withPrefix' : true
 			},
 			'Restore' : {
 				'location' : 'header',
@@ -2734,12 +3051,18 @@ const operations = {
             },
             'SseKms': {
                 'location': 'header',
-                'sentAs': 'x-obs-server-side-encryption'
+                'sentAs': 'server-side-encryption',
+                'withPrefix': true
             },
             'SseKmsKey': {
                 'location': 'header',
                 'sentAs': 'x-obs-server-side-encryption-kms-key-id'
             },
+			'SseKmsProjectId': {
+				'location': 'header',
+				'sentAs': 'sse-kms-key-project-id',
+				'withPrefix' : true,
+			},
             'SseC': {
                 'location': 'header',
                 'sentAs': 'server-side-encryption-customer-algorithm',
@@ -2760,18 +3083,27 @@ const operations = {
                 'location': 'header',
                 'sentAs': 'Content-Language'
             },
+            'ContentEncoding': {
+                'location': 'header',
+                'sentAs': 'Content-Encoding'
+            },
             'CacheControl': {
                 'location': 'header',
-                'sentAs': 'Cache-Control'
-            },
-            'ContentDisposition': {
-                'location': 'header',
-                'sentAs': 'Content-Disposition'
-            },
-            'Expires': {
-                'location': 'header',
-                'sentAs': 'Expires'
-            }
+				'sentAs': 'Cache-Control'
+			},
+			'ContentDisposition': {
+				'location': 'header',
+				'sentAs': 'Content-Disposition'
+			},
+			'Expires': {
+				'location': 'header',
+				'sentAs': 'Expires'
+			},
+			'ReplicationStatus': {
+				'location': 'header',
+				'sentAs': 'replication-status',
+				'withPrefix': true
+			}
         }
     },
 
@@ -2812,7 +3144,7 @@ const operations = {
                 'sentAs': 'Content-Language'
             },
             'ContentEncoding': {
-            	'location': 'header', 
+            	'location': 'header',
             	'sentAs': 'Content-Encoding'
             },
             'ContentType': {
@@ -2824,8 +3156,9 @@ const operations = {
                 'sentAs': 'Expires'
             },
             'Metadata': {
-            	'shape': 'Sy', 
-            	'location': 'header', 
+            	'shape': 'Sy',
+				'location': 'header',
+				'type': 'object',
             	'sentAs': 'meta-',
                 'withPrefix': true
             },
@@ -3019,6 +3352,10 @@ const operations = {
 				'location' : 'xml',
 				'sentAs' : 'Quiet',
 			},
+			'EncodingType' : {
+				'location' : 'xml',
+				'sentAs' : 'EncodingType',
+			},
 			'Objects' : {
 				'required' : true,
 				'type' : 'array',
@@ -3043,6 +3380,10 @@ const operations = {
 			'type' : 'xml',
 			'xmlRoot' : 'DeleteResult',
 		},
+		'EncodingType' : {
+			'location' : 'xml',
+			'sentAs' : 'EncodingType',
+		},
 		'parameters' : {
 			'Deleteds' : {
 				'type' : 'array',
@@ -3052,6 +3393,7 @@ const operations = {
 					'type' : 'object',
 					'parameters' : {
 						'Key' : {
+							'decode' : true,
 							'sentAs' : 'Key',
 						},
 						'VersionId' : {
@@ -3090,11 +3432,15 @@ const operations = {
 			},
 		},
 	},
-	
+
 	'InitiateMultipartUpload' : {
 		'httpMethod' : 'POST',
 		'urlPath' : 'uploads',
 		'parameters' : {
+			'EncodingType' : {
+				'location' : 'urlPath',
+				'sentAs' : 'encoding-type',
+			},
 			'Bucket' : {
 				'required' : true,
 				'location' : 'uri',
@@ -3167,6 +3513,11 @@ const operations = {
 				'sentAs' : 'server-side-encryption-kms-key-id',
 				'withPrefix' : true
 			},
+			'SseKmsProjectId' :{
+				'location' : 'header',
+				'sentAs': 'sse-kms-key-project-id',
+				'withPrefix' : true,
+			},
 			'SseC' :{
 				'location' : 'header',
 				'sentAs' : 'server-side-encryption-customer-algorithm',
@@ -3186,6 +3537,10 @@ const operations = {
 			'xmlRoot' : 'InitiateMultipartUploadResult',
 		},
 		'parameters' : {
+			'EncodingType' : {
+				'location' : 'xml',
+				'sentAs' : 'EncodingType',
+			},
 			'Bucket' : {
 				'location' : 'xml',
 				'sentAs' : 'Bucket',
@@ -3207,6 +3562,11 @@ const operations = {
 				'location' : 'header',
 				'sentAs' : 'server-side-encryption-kms-key-id',
 				'withPrefix' : true
+			},
+			'SseKmsProjectId' :{
+				'location' : 'header',
+				'sentAs': 'sse-kms-key-project-id',
+				'withPrefix' : true,
 			},
 			'SseC' :{
 				'location' : 'header',
@@ -3249,6 +3609,10 @@ const operations = {
 				'location' : 'urlPath',
 				'sentAs' : 'upload-id-marker',
 			},
+			'EncodingType' : {
+				'location' : 'urlPath',
+				'sentAs' : 'encoding-type',
+			}
 		},
 	},
 	'ListMultipartUploadsOutput' : {
@@ -3262,6 +3626,7 @@ const operations = {
 				'sentAs' : 'Bucket',
 			},
 			'KeyMarker' : {
+				'decode' : true,
 				'location' : 'xml',
 				'sentAs' : 'KeyMarker',
 			},
@@ -3270,14 +3635,17 @@ const operations = {
 				'sentAs' : 'UploadIdMarker',
 			},
 			'NextKeyMarker' : {
+				'decode' : true,
 				'location' : 'xml',
 				'sentAs' : 'NextKeyMarker',
 			},
 			'Prefix' : {
+				'decode' : true,
 				'location' : 'xml',
 				'sentAs' : 'Prefix',
 			},
 			'Delimiter' : {
+				'decode' : true,
 				'location' : 'xml',
 				'sentAs' : 'Delimiter',
 			},
@@ -3293,6 +3661,10 @@ const operations = {
 				'location' : 'xml',
 				'sentAs' : 'IsTruncated',
 			},
+			'EncodingType' : {
+				'location' : 'xml',
+				'sentAs' : 'EncodingType'
+			},
 			'Uploads' : {
 				'type' : 'array',
 				'location' : 'xml',
@@ -3304,6 +3676,7 @@ const operations = {
 							'sentAs' : 'UploadId',
 						},
 						'Key' : {
+							'decode' : true,
 							'sentAs' : 'Key',
 						},
 						'Initiated' : {
@@ -3358,6 +3731,21 @@ const operations = {
 			'PartSize' : {
 				'type' : 'plain'
 			},
+			'SseKms' :{
+				'location' : 'header',
+				'sentAs' : 'server-side-encryption',
+				'withPrefix' : true
+			},
+			'SseKmsKey' :{
+				'location' : 'header',
+				'sentAs' : 'server-side-encryption-kms-key-id',
+				'withPrefix' : true
+			},
+			'SseKmsProjectId' :{
+				'location' : 'header',
+				'sentAs': 'sse-kms-key-project-id',
+				'withPrefix' : true,
+			},
 			'SseC' :{
 				'location' : 'header',
 				'sentAs' : 'server-side-encryption-customer-algorithm',
@@ -3389,6 +3777,11 @@ const operations = {
 				'location' : 'header',
 				'sentAs' : 'server-side-encryption-kms-key-id',
 				'withPrefix' : true
+			},
+			'SseKmsProjectId' :{
+				'location' : 'header',
+				'sentAs': 'sse-kms-key-project-id',
+				'withPrefix' : true,
 			},
 			'SseC' :{
 				'location' : 'header',
@@ -3428,6 +3821,10 @@ const operations = {
 				'location' : 'urlPath',
 				'sentAs' : 'part-number-marker',
 			},
+			'EncodingType' : {
+				'location' : 'urlPath',
+				'sentAs' : 'encoding-type',
+			}
 		},
 	},
 	'ListPartsOutput' : {
@@ -3441,6 +3838,7 @@ const operations = {
 				'sentAs' : 'Bucket',
 			},
 			'Key' : {
+				'decode' : true,
 				'location' : 'xml',
 				'sentAs' : 'Key',
 			},
@@ -3467,6 +3865,10 @@ const operations = {
 			'StorageClass' : {
 				'location' : 'xml',
 				'sentAs' : 'StorageClass',
+			},
+			'EncodingType' : {
+				'location' : 'urlPath',
+				'sentAs' : 'EncodingType',
 			},
 			'Initiator':initiator,
 			'Owner' : owner,
@@ -3606,7 +4008,7 @@ const operations = {
 			},
 		},
 	},
-	
+
 	'CompleteMultipartUpload' : {
 		'httpMethod' : 'POST',
 		'data' : {
@@ -3625,6 +4027,25 @@ const operations = {
 				'required' : true,
 				'location' : 'urlPath',
 				'sentAs' : 'uploadId',
+			},
+			'EncodingType' : {
+				'location' : 'urlPath',
+				'sentAs' : 'encoding-type',
+			},
+			'SseKms' :{
+				'location' : 'header',
+				'sentAs' : 'server-side-encryption',
+				'withPrefix' : true
+			},
+			'SseKmsKey' :{
+				'location' : 'header',
+				'sentAs' : 'server-side-encryption-kms-key-id',
+				'withPrefix' : true
+			},
+			'SseKmsProjectId' :{
+				'location' : 'header',
+				'sentAs': 'sse-kms-key-project-id',
+				'withPrefix' : true,
 			},
 			'Parts' : {
 				'required' : true,
@@ -3660,11 +4081,16 @@ const operations = {
 				'location' : 'xml',
 				'sentAs' : 'Location',
 			},
+			'EncodingType' : {
+				'location' : 'xml',
+				'sentAs' : 'EncodingType',
+			},
 			'Bucket' : {
 				'location' : 'xml',
 				'sentAs' : 'Bucket',
 			},
 			'Key' : {
+				'decode' : true,
 				'location' : 'xml',
 				'sentAs' : 'Key',
 			},
@@ -3682,6 +4108,11 @@ const operations = {
 				'sentAs' : 'server-side-encryption-kms-key-id',
 				'withPrefix' : true
 			},
+			'SseKmsProjectId' :{
+				'location' : 'header',
+				'sentAs': 'sse-kms-key-project-id',
+				'withPrefix' : true,
+			},
 			'SseC' :{
 				'location' : 'header',
 				'sentAs' : 'server-side-encryption-customer-algorithm',
@@ -3692,6 +4123,120 @@ const operations = {
 				'sentAs' : 'server-side-encryption-customer-key-MD5',
 				'withPrefix' : true
 			}
+		},
+	},
+	'OptionsBucket' : {
+		'httpMethod' : 'OPTIONS',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri',
+			},
+			'Origin' : {
+				'required' : true,
+				'location' : 'header',
+				'sentAs' : 'Origin',
+			},
+			'AccessControlRequestMethods' : {
+				'required' : true,
+				'type' : 'array',
+				'location' : 'header',
+				'sentAs' : 'Access-Control-Request-Method',
+				'items' : {
+					'type' : 'string',
+				},
+			},
+			'AccessControlRequestHeaders' : {
+				'type' : 'array',
+				'location' : 'header',
+				'sentAs' : 'Access-Control-Request-Headers',
+				'items' : {
+					'type' : 'string',
+				},
+			},
+		},
+	},
+	'OptionsBucketOutput' : {
+		'parameters' : {
+			'AllowOrigin' : {
+				'location' : 'header',
+				'sentAs' : 'access-control-allow-origin',
+			},
+			'AllowHeader' : {
+				'location' : 'header',
+				'sentAs' : 'access-control-allow-headers',
+			},
+			'AllowMethod' : {
+				'location' : 'header',
+				'sentAs' : 'access-control-allow-methods',
+			},
+			'ExposeHeader' : {
+				'location' : 'header',
+				'sentAs' : 'access-control-expose-headers',
+			},
+			'MaxAgeSeconds' : {
+				'location' : 'header',
+				'sentAs' : 'access-control-max-age',
+			},
+		},
+	},
+	'OptionsObject' : {
+		'httpMethod' : 'OPTIONS',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri',
+			},
+			'Key' : {
+				'required' : true,
+				'location' : 'uri',
+			},
+			'Origin' : {
+				'required' : true,
+				'location' : 'header',
+				'sentAs' : 'Origin',
+			},
+			'AccessControlRequestMethods' : {
+				'required' : true,
+				'type' : 'array',
+				'location' : 'header',
+				'sentAs' : 'Access-Control-Request-Method',
+				'items' : {
+					'type' : 'string',
+				},
+			},
+			'AccessControlRequestHeaders' : {
+				'type' : 'array',
+				'location' : 'header',
+				'sentAs' : 'Access-Control-Request-Headers',
+				'items' : {
+					'type' : 'string',
+				},
+			},
+		},
+	},
+	'OptionsObjectOutput' : {
+		'parameters' : {
+			'AllowOrigin' : {
+				'location' : 'header',
+				'sentAs' : 'access-control-allow-origin',
+			},
+			'AllowHeader' : {
+				'location' : 'header',
+				'sentAs' : 'access-control-allow-headers',
+			},
+			'AllowMethod' : {
+				'location' : 'header',
+				'sentAs' : 'access-control-allow-methods',
+			},
+			'ExposeHeader' : {
+				'location' : 'header',
+				'sentAs' : 'access-control-expose-headers',
+			},
+			'MaxAgeSeconds' : {
+				'location' : 'header',
+				'sentAs' : 'access-control-max-age',
+			},
 		},
 	},
 	'GetBucketEncryption' : {
@@ -3714,7 +4259,7 @@ const operations = {
 				'type': 'object',
 				'location': 'xml',
 				'sentAs': 'Rule',
-					
+
 				'parameters': {
 					'ApplyServerSideEncryptionByDefault': {
 						'type': 'object',
@@ -3725,6 +4270,9 @@ const operations = {
 							},
 							'KMSMasterKeyID': {
 								'sentAs': 'KMSMasterKeyID'
+							},
+							'ProjectID': {
+								'sentAs': 'ProjectID'
 							}
 						}
 					}
@@ -3773,8 +4321,694 @@ const operations = {
 		'parameters' : {
 			'Rule' : bucketEncryptionRule
 		}
-	}
+	},
+	'GetBucketRequesterPay': {
+		'httpMethod': 'GET',
+		'urlPath': 'requestPayment',
+		'parameters': {
+			'Bucket': {
+				'required': true,
+				'location': 'uri'
+			}
+		}
+	},
+	'GetBucketRequesterPayOutput' : {
+		'data' : {
+			'type' : 'xml',
+			'xmlRoot' : 'RequestPaymentConfiguration'
+		},
+		'parameters' : {
+			'Payer' : {
+				'location': 'xml',
+				'sentAs': 'Payer',
+			}
+		}
+	},
+	'SetBucketRequesterPay': {
+		'httpMethod' : 'PUT',
+		'urlPath': 'requestPayment',
+		'data' : {
+			'xmlRoot' : 'RequestPaymentConfiguration'
+		},
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			},
+			'Payer' : {
+				 'location': 'xml',
+				 'sentAs': 'Payer'
+			}
+		}
+	},
+	'SetBucketRequesterPayOutput': {
+		'data' : {
+			'type' : 'xml',
+			'xmlRoot' : 'RequestPaymentConfiguration'
+		},
+		'parameters' : {
+			'Payer' : {
+				'location': 'xml',
+				'sentAs': 'Payer',
+			}
+		}
+	},
+
+	'SetMirrorBackToSource': {
+		'httpMethod': 'PUT',
+		'urlPath': 'mirrorBackToSource',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			},
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'Rules' : {
+				'required' : true,
+				'location' : 'body'
+			},
+		},
+	},
+	'SetMirrorBackToSourceOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'Rules' : {
+				'location' : 'body'
+			}
+		}
+	},
+	'GetMirrorBackToSource': {
+		'httpMethod': 'GET',
+		'urlPath': 'mirrorBackToSource',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			},
+			'ApiPath': {
+				'location': 'uri'
+			}
+		}
+	},
+	'GetMirrorBackToSourceOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'Rules' : {
+				'location' : 'body'
+			}
+		}
+	},
+	'DeleteMirrorBackToSource': {
+		'httpMethod' : 'DELETE',
+		'urlPath': 'mirrorBackToSource',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			},
+			'ApiPath': {
+				'location': 'uri'
+			}
+		}
+	},
+	'GetBucketDirectColdAccess': {
+		'httpMethod' : 'GET',
+		'urlPath': 'directcoldaccess',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			}
+		}
+	},
+	'GetBucketDirectColdAccessOutput' : {
+		'data' : {
+			'type' : 'xml',
+			'xmlRoot' : 'DirectColdAccessConfiguration'
+		},
+		'parameters' : {
+			'Status' : {
+				'location': 'xml',
+				'sentAs': 'Status',
+			}
+		}
+	},
+	'SetBucketDirectColdAccess': {
+		'httpMethod': 'PUT',
+		'urlPath': 'directcoldaccess',
+		'data': {
+			'xmlRoot': 'DirectColdAccessConfiguration',
+			'md5' : true
+		},
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			},
+			'Status': {
+				'required': true,
+				'location': 'xml',
+				'sentAs': 'Status'
+			}
+		}
+	},
+
+	'SetBucketDirectColdAccessOutput': {
+		'data' : {
+			'type' : 'xml',
+			'xmlRoot' : 'DirectColdAccessConfiguration'
+		},
+		'parameters' : {
+			'Status': {
+				'location': 'xml',
+				'sentAs': 'Status'
+			}
+		}
+	},
+
+	'DeleteBucketDirectColdAccess': {
+		'httpMethod': 'DELETE',
+		'urlPath': 'directcoldaccess',
+		'parameters': {
+			'Bucket': {
+				'required': true,
+				'location': 'uri'
+			}
+		}
+	},
+
+	'DeleteBucketDirectColdAccessOutput': {
+		'data' : {
+			'type' : 'xml',
+			'xmlRoot' : 'DirectColdAccessConfiguration'
+		},
+		'parameters' : {
+			'Status': {
+				'location': 'xml',
+				'sentAs': 'Status'
+			}
+		}
+	},
+	'GetBucketCustomDomain': {
+		'httpMethod' : 'GET',
+		'urlPath': 'customdomain',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			}
+		}
+	},
+	'GetBucketCustomDomainOutput': {
+		'data' : {
+			'type' : 'xml',
+			'xmlRoot' : 'ListBucketCustomDomainsResult'
+		},
+		'parameters' : {
+			'Domains' : {
+				'location': 'xml',
+				'type': 'array',
+				'sentAs': 'Domains',
+				'items' : {
+					'type' : 'object',
+					'parameters' : {
+						'DomainName' : {
+							'sentAs' : 'DomainName',
+						},
+						'Value' : {
+							'sentAs' : 'CreateTime',
+						}
+					}
+				}
+			}
+		}
+	},
+	'SetBucketCustomDomain': {
+		'httpMethod': 'PUT',
+		'parameters': {
+			'Bucket': {
+				'required' : true,
+				'location' : 'uri'
+			},
+			'DomainName': {
+				'location': 'urlPath',
+				'sentAs': 'customdomain'
+			}
+		}
+	},
+	'DeleteBucketCustomDomain': {
+		'httpMethod': 'DELETE',
+		'parameters': {
+			'Bucket': {
+				'required' : true,
+				'location' : 'uri'
+			},
+			'DomainName': {
+				'location': 'urlPath',
+				'sentAs': 'customdomain'
+			}
+		}
+	},
+	'GetCDNNotifyConfiguration': {
+		'httpMethod': 'GET',
+		'urlPath': 'CDNNotifyConfiguration',
+		'parameters': {
+			'Bucket': {
+				'required' : true,
+				'location' : 'uri'
+			}
+		}
+	},
+	'GetCDNNotifyConfigurationOutput': {
+		'data' : {
+			'type' : 'xml',
+			'xmlRoot' : 'CDNNotifyConfiguration'
+		},
+		'parameters' : {
+			'Domain' : {
+				'location': 'xml',
+				'type': 'array',
+				'sentAs': 'Domain',
+				'items' : {
+					'type' : 'object',
+					'parameters' : {
+						'Name' : {
+							'sentAs' : 'Name',
+						},
+						'Events' : {
+							'type' : 'array',
+							'items' : {
+								'type' : 'adapter'
+							},
+							'sentAs': 'Event'
+						}
+					}
+				}
+			}
+		}
+	},
+	'SetCdnNotifyConfiguration': {
+		'httpMethod': 'PUT',
+		'urlPath': 'CDNNotifyConfiguration',
+		'data' : {
+			'xmlRoot' : 'CDNNotifyConfiguration',
+			'xmlAllowEmpty' : true
+		},
+		'parameters': {
+			'Bucket': {
+				'required': true,
+				'location': 'uri',
+
+			},
+			'Domain': CDNNotifyConfiguration
+		},
+	},
+	'GetQuota': {
+		'httpMethod': 'GET',
+		'urlPath': 'quota',
+	},
+	'GetQuotaOutput': {
+		'data' : {
+			'type' : 'xml',
+			'xmlRoot' : 'MaxBucketNumber',
+		},
+		'parameters' : {
+			'Size' : {
+				'location' : 'xml',
+				'sentAs' : 'Number',
+			}
+		},
+	},
+
+	'GetWorkflowTrigger': {
+		'httpMethod' : 'GET',
+		'urlPath': 'obsworkflowtriggerpolicy',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			},
+			'ApiPath': {
+				'location': 'uri'
+			}
+		}
+	},
+	'GetWorkflowTriggerOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'rules' : {
+				'location' : 'body'
+			}
+		}
+	},
+	'DeleteWorkflowTrigger' : {
+		'httpMethod' : 'DELETE',
+		'urlPath': 'obsworkflowtriggerpolicy',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			},
+			'ApiPath': {
+				'location': 'uri'
+			}
+		},
+	},
+	'CreateWorkflowTrigger' : {
+		'httpMethod' : 'PUT',
+		'urlPath': 'obsworkflowtriggerpolicy',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			},
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'Rule' : {
+				'required' : true,
+				'location' : 'body',
+			},
+		},
+	},
+	'RestoreFailedWorkflowExecution' : {
+		'httpMethod' : 'PUT',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'Other_parameter': {
+				'required' : true,
+				'location' : 'uri',
+				'sentAs': 'execution_name'
+			},
+			'GraphName': {
+				'required' : true,
+				'location' : 'urlPath',
+				'sentAs': 'x-workflow-graph-name'
+			},
+		},
+	},
+	'CreateTemplate' : {
+		'httpMethod' : 'POST',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'Template' : {
+				'required' : true,
+				'location' : 'body',
+			}
+		},
+	},
+	'CreateWorkflow' : {
+		'httpMethod' : 'POST',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'Other_parameter': {
+				'required' : true,
+				'location' : 'uri',
+				'sentAs': 'graph_name'
+			},
+			'Workflow_create': {
+				'location' : 'urlPath',
+				'sentAs': 'x-workflow-create'
+			},
+			'Workflow' : {
+				'required' : true,
+				'location' : 'body',
+			}
+		}
+	},
+	'DeleteWorkflow': {
+		'httpMethod' : 'DELETE',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'Other_parameter': {
+				'location' : 'uri',
+				'sentAs': 'graph_name'
+			}
+		}
+	},
+	'UpdateWorkflow': {
+		'httpMethod' : 'PUT',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'Other_parameter': {
+				'location' : 'uri',
+				'sentAs': 'graph_name'
+			},
+			'Graph_name': {
+				'required' : true,
+				'location' : 'body'
+			}
+		}
+	},
+	'GetWorkflowList': {
+		'httpMethod' : 'GET',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'Other_parameter': {
+				'location' : 'uri',
+				'sentAs': 'graph_name_prefix'
+			},
+			'XObsLimit': {
+				'type' : 'number',
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-limit'
+			},
+			'XObsPrefix': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-prefix',
+			},
+			'XObsStart': {
+				'type' : 'number',
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-start'
+			}
+		}
+	},
+	'GetWorkflowListOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'workflows' : {
+				'location' : 'body'
+			}
+		}
+	},
+	'GetWorkflowTemplateList': {
+		'httpMethod' : 'GET',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'Other_parameter': {
+				'location' : 'uri',
+				'sentAs': 'template_name_prefix'
+			},
+			'Start': {
+				'type' : 'number',
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-start'
+			},
+			'Limit': {
+				'type' : 'number',
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-limit'
+			},
+			'X-workflow-prefix': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-prefix',
+			}
+		}
+	},
+	'GetWorkflowTemplateListOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'templates' : {
+				'location' : 'body'
+			}
+		}
+	},
+	'GetWorkflowInstanceList': {
+		'httpMethod' : 'GET',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'Other_parameter': {
+				'location' : 'uri',
+				'sentAs': 'execution_name_prefix'
+			},
+			'Start': {
+				'type' : 'number',
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-start'
+			},
+			'Limit': {
+				'type' : 'number',
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-limit'
+			},
+			'Graph_name': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-graph-name'
+			},
+			'State': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-execution-state'
+			},
+			'X-workflow-prefix': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-prefix',
+			}
+		}
+	},
+	'GetWorkflowInstanceListOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'instances' : {
+				'location' : 'body'
+			}
+		}
+	},
+	'DeleteTemplate': {
+		'httpMethod': 'DELETE',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'Other_parameter': {
+				'location' : 'uri',
+				'sentAs': 'template_name'
+			}
+		}
+	},
+	'GetActionTemplates': {
+		'httpMethod' : 'GET',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'Other_parameter': {
+				'location' : 'uri',
+				'sentAs': 'template_name_prefix'
+			},
+			'XObsPrefix': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-prefix',
+			},
+			'XObsCategory': {
+				'type' : 'String',
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-category'
+			}
+		}
+	},
+	'GetActionTemplatesOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'actions' : {
+				'location' : 'body'
+			}
+		}
+	},
+	'GetWorkflowAuthorization': {
+		'httpMethod' : 'GET',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			}
+		}
+
+	},
+	'GetWorkflowAuthorizationOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'authorization' : {
+				'location' : 'body'
+			}
+		}
+	},
+	'OpenWorkflowAuthorization': {
+		'httpMethod' : 'POST',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			}
+		}
+	},
 	
+	'CreateOnlineDecom' : {
+		'httpMethod' : 'PUT',
+		'urlPath' : 'obscompresspolicy',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri',
+			},
+			'Decom' : {
+				'required' : true,
+				'location' : 'body',
+			},
+		},
+	},
+	'GetOnlineDecom' : {
+		'httpMethod' : 'GET',
+		'urlPath' : 'obscompresspolicy',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri',
+			},
+		},
+	},
+	'GetOnlineDecomOutput' : {
+		'data' : {
+			'type' : 'body',
+		},
+		'parameters' : {
+			'Decom' : {
+				'location' : 'body',
+			},
+		},
+	},
+	'DeleteOnlineDecom' : {
+		'httpMethod' : 'DELETE',
+		'urlPath' : 'obscompresspolicy',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri',
+			},
+		},
+	},
 };
 
 return operations;

@@ -1,75 +1,73 @@
-'use strict';
-module.exports = function(grunt) {
-
-	// Load grunt tasks automatically
-	require('load-grunt-tasks')(grunt);
+module.exports = function (grunt) {
+    // Load grunt tasks automatically
+    require('load-grunt-tasks')(grunt);
 
 	// Time how long tasks take. Can help when optimizing build times
 	require('time-grunt')(grunt);
 
 	// Making grunt default to force in order not to break the project.
 	grunt.option('force', false);
-	
-	var pkg = grunt.file.readJSON('package.json');
-	
-	var sdkVersion = pkg.version;
-	
-	var pkgName = pkg.name;
-	
-	var config = {
-			
+
+	let pkg = grunt.file.readJSON('package.json');
+
+	let sdkVersion = pkg.version;
+
+	let pkgName = pkg.name;
+
+	let config = {
+
 		    lib: {
 		    	dev : [
-		    		'node_modules/babel-polyfill/dist/polyfill.js'
+		    		'node_modules/@babel/polyfill/dist/polyfill.js'
 		    	],
-				
+
 		    	dist : [
-			    	'node_modules/babel-polyfill/dist/polyfill.min.js',
+			    	'node_modules/@babel/polyfill/dist/polyfill.min.js',
 		    	],
-			
+
 			},
-		    
+
 		    app : {
-		    	
+
 		    	src:  'src',
-		    	
+
 		    	dist: 'dist',
-		    	
+
 		    	reporter: 'reporter',
-		    	
+
 		    	js:  ['src/vendor/base64.js', 'src/vendor/sha.js', 'src/vendor/URI.js', 'src/vendor/md5.js', 'src/vendor/axios.js', 'src/scripts/log.js', 'src/scripts/v2Model.js', 'src/scripts/obsModel.js', 'src/scripts/xml2js.js' ,'src/scripts/utils.js', 'src/scripts/enums.js', 'src/scripts/posix.js', 'src/scripts/resumable.js', 'src/scripts/obs.js'],
-		    	
+
 		    	lintJs : ['src/scripts/log.js', 'src/scripts/v2Model.js', 'src/scripts/obsModel.js' ,'src/scripts/utils.js', 'src/scripts/enums.js', 'src/scripts/posix.js', 'src/scripts/resumable.js', 'src/scripts/xml2js.js', 'src/scripts/obs.js'],
-		    	
+
 		    	view: 'src/*.html',
-		    	
+
 		    	conf: 'Gruntfile.js',
-		    	
+
 		    	minJs: 'dist/' + pkgName + '-' + sdkVersion + '.min.js'
 		    }
-		    
+
 	};
-	
-	var inject = function(){
-		var list = [];
-		for(var i=0;i<config.lib.dev.length;i++){
+
+	let inject = function(){
+		let list = [];
+		for(let i=0;i<config.lib.dev.length;i++){
 			list.push('src/' + config.lib.dev[i]);
 		}
-		
+
 		return list;
 	};
-	
-	var process = require('process');
-	var zipPackageName = process.env.zipPackageName || '<%= pkg.name %>-<%= pkg.version %>';
-	
-	
+
+	let process = require('process');
+	let zipPackageName = process.env.zipPackageName || '<%= pkg.name %>-<%= pkg.version %>';
+
+
 	// Project initialization configuration
 	grunt
 			.initConfig({
 				pkg : pkg,
 
 				config : config,
-				
+
 				clean : {
 					dist : {
 						files : {
@@ -111,13 +109,13 @@ module.exports = function(grunt) {
 				},
 
 				ngAnnotate : {
-					
+
 					step1 :{
 						files: {
 							'<%= config.app.dist %>/<%= pkg.name %>-<%= pkg.version %>.js' : '<%= config.app.js %>'
 						}
 					},
-					
+
 					step2 : {
 						files : [
 							{
@@ -133,7 +131,7 @@ module.exports = function(grunt) {
 						]
 					}
 				},
-				
+
 			    babel: {
 			        options: {
 			        	sourceMap: false,
@@ -141,7 +139,7 @@ module.exports = function(grunt) {
 			                'babel-preset-env'
 			            ]
 			        },
-			        
+
 			        dist: {
 			            files: {
 			            	'<%= config.app.dist %>/<%= pkg.name %>-es5-<%= pkg.version %>.js' : '<%= config.app.dist %>/<%= pkg.name %>-<%= pkg.version %>.js'
@@ -163,7 +161,7 @@ module.exports = function(grunt) {
 
 				// Copies remaining files to places other tasks can use
 				copy : {
-					
+
 					dev: {
 						files : [
 							{
@@ -175,7 +173,7 @@ module.exports = function(grunt) {
 							}
 						]
 					},
-					
+
 					dist : {
 						files : [
 							{
@@ -194,7 +192,7 @@ module.exports = function(grunt) {
 						]
 					}
 				},
-				
+
 				zip: {
 					dist :{
 						cwd : '.',
@@ -257,9 +255,9 @@ module.exports = function(grunt) {
 					}
 				}
 			});
-	
+
 	grunt.registerTask('dev', ['jshint:dist']);
-	
+
 	grunt.registerTask('inject', ['copy:dev','injector:dev' ]);
 
 	// Build task(s).

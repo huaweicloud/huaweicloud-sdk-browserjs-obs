@@ -13,18 +13,16 @@
  *
  */
 (function (root, factory) {
-  'use strict';
   if(typeof define === 'function' && define.amd){
 	  define('posix', [], factory);
   }else{
 	  root['posix'] = factory();
   }
 })(this ? this : window, function(){
-	'use strict';
-	
-	var wrapCallback = function(callback, log, methodName){
+
+	let wrapCallback = function(callback, log, methodName){
 		callback = callback || function(){};
-		var start = new Date().getTime();
+		let start = new Date().getTime();
 		return function(err, result){
 			log.runLog('info', methodName, 'ObsClient cost ' +  (new Date().getTime() - start) + ' ms');
 			if(Object.prototype.toString.call(err) === '[object String]'){
@@ -36,7 +34,7 @@
 	};
 	
 	
-	var wrapEventCallback = function(eventCallback){
+	let wrapEventCallback = function(eventCallback){
 		eventCallback = eventCallback || function(){};
 		return function(t, key, result){
 			if(Object.prototype.toString.call(result) === '[object Error]'){
@@ -54,47 +52,47 @@
 			if(result.CommonMsg.Status > 300){
 				return eventCallback(t, key, new Error('status:' + result.CommonMsg.Status + ', code:' + result.CommonMsg.Code + ', message:' + result.CommonMsg.Message));
 			}
-			
+
 			eventCallback(t, key, result);
 		};
 	};
 	
-	var checkPrefix = function(prefix){
+	let checkPrefix = function(prefix){
 		if(Object.prototype.toString.call(prefix) === '[object String]' && prefix.lastIndexOf('/') !== prefix.length - 1){
 			prefix += '/';
 		}
 		return prefix;
 	};
 	
-	var posix = {};
+	let posix = {};
 	posix.extend = function(ObsClient){
 		ObsClient.prototype.dropFile = function(param, callback){
 			this.deleteObject(param, callback);
 		};
 		
 		ObsClient.prototype.dropFolder = function(param, callback){
-			var that = this;
+			let that = this;
 			param = param || {};
-			var _callback = wrapCallback(callback, that.log, 'dropFolder');
-			var eventCallback = wrapEventCallback(param.EventCallback);
-			var taskNum = param.TaskNum || 1;
-			var runningTask = 0;
-			var taskQueue = [];
-			
-			var doNext = function(){
+			let _callback = wrapCallback(callback, that.log, 'dropFolder');
+			let eventCallback = wrapEventCallback(param.EventCallback);
+			let taskNum = param.TaskNum || 1;
+			let runningTask = 0;
+			let taskQueue = [];
+
+			let doNext = function(){
 				while(runningTask < taskNum && taskQueue.length > 0){
 					taskQueue.shift()();
 				}
 			};
 			
-			var doDropOne = function(key, ctx, done, dryRun){
+			let doDropOne = function(key, ctx, done, dryRun){
 				if(dryRun){
 					ctx.finished++;
 					done(ctx);
 					return;
 				}
 				
-				var task = function(){
+				let task = function(){
 					runningTask++;
 					that.dropFile({
 						Bucket : ctx.bucket,
@@ -123,9 +121,9 @@
 				}
 			};
 			
-			var delimiter = '/';
+			let delimiter = '/';
 			
-			var createDone = function(subFolder, ctx, done){
+			let createDone = function(subFolder, ctx, done){
 				return function(subCtx){
 					if(!subCtx.isTruncated && subCtx.finished === subCtx.total && subCtx.subDeleted){
 						doDropOne(subFolder, ctx, done, false);
@@ -133,7 +131,7 @@
 				};
 			};
 			
-			var recursiveDropByFolder = function(ctx, bucket, prefix, marker, done){
+			let recursiveDropByFolder = function(ctx, bucket, prefix, marker, done){
 				runningTask++;
 				that.listObjects({
 					Bucket : bucket,
@@ -159,7 +157,7 @@
 					
 					ctx.isTruncated = result.InterfaceResult.IsTruncated === 'true';
 					
-					var createRecursiveDropByFolderTask = function(subFolder){
+					let createRecursiveDropByFolderTask = function(subFolder){
 						return function(){
 							recursiveDropByFolder({total : 0, finished : 0, isTruncated : false, bucket : bucket, subDeleted : true}, bucket, subFolder, null, createDone(subFolder, ctx, done));
 						};
@@ -191,7 +189,7 @@
 				});
 			};
 			
-			var folder = checkPrefix(param.Prefix);
+			let folder = checkPrefix(param.Prefix);
 			recursiveDropByFolder({total : 0, finished : 0, isTruncated : false, bucket : param.Bucket, subDeleted : true}, param.Bucket, folder, null, function(ctx){
 				if(ctx.isTruncated || ctx.finished !== ctx.total){
 					return;

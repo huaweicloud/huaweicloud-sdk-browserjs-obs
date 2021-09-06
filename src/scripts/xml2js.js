@@ -13,17 +13,15 @@
  *
  */
 (function (root, factory) {
-  'use strict';
   if(typeof define === 'function' && define.amd){
 	  define('xml2js', [], factory);
   }else{
 	  root['xml2js'] = factory();
   }
 })(this ? this : window, function() {
-	'use strict';
 	function Xml2Json() {
-		var json2Str = function(jsonObj) {
-			var rejsn = JSON.stringify(jsonObj, undefined, 2).replace(
+		let json2Str = function(jsonObj) {
+			let rejsn = JSON.stringify(jsonObj, undefined, 2).replace(
 					/(\\t|\\r|\\n)/g, '').replace(/"",[\n\t\r\s]+""[,]*/g, '')
 					.replace(/(\n[\t\s\r]*\n)/g, '').replace(
 							/[\s\t]{2,}""[,]{0,1}/g, '').replace(
@@ -32,13 +30,13 @@
 		};
 		
 		
-		var setJsonObj = function(xmlDoc) {
-			var jsonObj = {};
+		let setJsonObj = function(xmlDoc) {
+			let jsonObj = {};
 			if (xmlDoc.nodeType === 1) {
 				if (xmlDoc.attributes.length > 0) {
 					jsonObj['@attributes'] = {};
-					for (var j = 0; j < xmlDoc.attributes.length; j++) {
-						var attribute = xmlDoc.attributes.item(j);
+					for (let j = 0; j < xmlDoc.attributes.length; j++) {
+						let attribute = xmlDoc.attributes.item(j);
 						jsonObj['@attributes'][attribute.nodeName] = attribute.value;
 					}
 				}
@@ -46,14 +44,14 @@
 				jsonObj = xmlDoc.nodeValue;
 			}
 			if (xmlDoc.hasChildNodes()) {
-				for (var i = 0; i < xmlDoc.childNodes.length; i++) {
-					var item = xmlDoc.childNodes.item(i);
-					var nodeName = item.nodeName;
+				for (let i = 0; i < xmlDoc.childNodes.length; i++) {
+					let item = xmlDoc.childNodes.item(i);
+					let nodeName = item.nodeName;
 					if (jsonObj[nodeName] === undefined) {
 						jsonObj[nodeName] = setJsonObj(item);
 					} else {
 						if (jsonObj[nodeName].push === undefined) {
-							var old = jsonObj[nodeName];
+							let old = jsonObj[nodeName];
 							jsonObj[nodeName] = [];
 							jsonObj[nodeName].push(old);
 						}
@@ -64,16 +62,16 @@
 			return jsonObj;
 		};
 		
-		var self = this; 
+		let self = this;
 		self.parseString = function(xml, rstr) {
-			var xmlDoc;
+			let xmlDoc;
 			if (window.DOMParser) {
 				xmlDoc = new window.DOMParser().parseFromString(xml, 'text/xml');
 			} else {
 				xmlDoc = new window.ActiveXObject('Microsoft.XMLDOM');
 				xmlDoc.async = 'false';
 			}
-			var ret = json2Str(setJsonObj(xmlDoc));
+			let ret = json2Str(setJsonObj(xmlDoc));
 			return (rstr === undefined) ? JSON.parse(ret) : ret;
 		};
 	}

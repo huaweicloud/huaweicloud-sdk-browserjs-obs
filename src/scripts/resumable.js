@@ -13,21 +13,20 @@
  *
  */
 (function (root, factory) {
-  'use strict';
   if(typeof define === 'function' && define.amd){
 	  define('resumable', ['md5', 'Base64'], factory);
   }else{
 	  root['resumable'] = factory(root['md5'], root['Base64']);
   }
 })(this ? this : window, function(md5, Base64){
-	'use strict';
-	
+
+	const minPartSize = 100 * 1024;
 	const defaultPartSize = 9 * 1024 * 1024;
 	const maxPartSize = 5 * 1024 * 1024 * 1024;
 	
-	var wrapCallback = function(callback, log, methodName){
+	let wrapCallback = function(callback, log, methodName){
 		callback = callback || function(){};
-		var start = new Date().getTime();
+		let start = new Date().getTime();
 		return function(err, result){
 			log.runLog('info', methodName, 'ObsClient cost ' +  (new Date().getTime() - start) + ' ms');
 			if(Object.prototype.toString.call(err) === '[object String]'){
@@ -38,11 +37,11 @@
 		};
 	};
 	
-	var isFunction = function(obj){
+	let isFunction = function(obj){
 		return Object.prototype.toString.call(obj) === '[object Function]';
 	};
 	
-	var wrapEventCallback = function(eventCallback){
+	let wrapEventCallback = function(eventCallback){
 		eventCallback = eventCallback || function(){};
 		return function(t, eventParam, result){
 			if(Object.prototype.toString.call(result) === '[object Error]'){
@@ -60,12 +59,12 @@
 			if(result.CommonMsg.Status > 300){
 				return eventCallback(t, eventParam, new Error('status:' + result.CommonMsg.Status + ', code:' + result.CommonMsg.Code + ', message:' + result.CommonMsg.Message));
 			}
-			
+
 			eventCallback(t, eventParam, result);
 		};
 	};
 	
-	var calculateUploadCheckpointMD5 = function(uploadCheckpoint){
+	let calculateUploadCheckpointMD5 = function(uploadCheckpoint){
 		let data = [];
 		data.push(uploadCheckpoint.bucket);
 		data.push(uploadCheckpoint.key);
@@ -105,7 +104,7 @@
 		return window.btoa(md5.MD5(data.join(''), false, true));
 	};
 	
-	var abortRequest = function(uploadCheckpoint, funcName, that){
+	let abortRequest = function(uploadCheckpoint, funcName, that){
 		if(uploadCheckpoint && uploadCheckpoint.uploadId){
 			that.abortMultipartUpload({
 				Bucket:uploadCheckpoint.bucket,
@@ -128,7 +127,7 @@
 		}
 	};
 	
-	var completedRequest = function(ctx){
+	let completedRequest = function(ctx){
 		if(ctx.finishedCount < ctx.uploadCheckpoint.partCount){
 			return;
 		}
@@ -184,7 +183,7 @@
 		});
 	};
 	
-	var startToUploadFile = function(ctx){
+	let startToUploadFile = function(ctx){
 		ctx.resumeCallback({
 			cancel : function(){
 				ctx.isSuspend = true;
@@ -197,8 +196,8 @@
 			}
 		}, ctx.uploadCheckpoint);
 		
-		var taskQueue = [];
-		var doNext = function(){
+		let taskQueue = [];
+		let doNext = function(){
 			while(ctx.runningTask < ctx.taskNum && taskQueue.length > 0){
 				taskQueue.shift()();
 			}
@@ -207,16 +206,16 @@
 			}
 		};
 		
-		var createProgressCallbackByPartNumber = function(partNumber){
+		let createProgressCallbackByPartNumber = function(partNumber){
 			return function(loaded, total, cost){
 				ctx.progressCallback(partNumber, loaded);
 			};
 		};
 		
-		var sliceBlob = function(blob, start, end, type) {
-			type = type || blob.type;  
+		let sliceBlob = function(blob, start, end, type) {
+			type = type || blob.type;
 			if (blob.mozSlice) {  
-			    return blob.mozSlice(start, end, type);  
+			    return blob.mozSlice(start, end, type);
 			} 
 			if (blob.webkitSlice) {  
 			    return blob.webkitSlice(start, end, type);
@@ -224,9 +223,9 @@
 			return blob.slice(start, end, type);
 		};
 		
-		var encodeFunc = window.btoa ? window.btoa : Base64.encode;
+		let encodeFunc = window.btoa ? window.btoa : Base64.encode;
 		
-		var transArrayBufferToBinaryString = function(buf){
+		let transArrayBufferToBinaryString = function(buf){
 			let readSize = 16 * 1024;
 			buf = new Uint8Array(buf);
 			let start = 0;
@@ -237,15 +236,15 @@
 				if(!data){
 					data = String.fromCharCode.apply(null, buf.slice(start, end));
 				}else{
-					data += String.fromCharCode.apply(null, buf.slice(start, end)); 
+					data += String.fromCharCode.apply(null, buf.slice(start, end));
 				}
 				start = end;
 			}
 			buf = null;
 			return data;
-		}
+		};
 		
-		var createUploadPartTask = function(part){
+		let createUploadPartTask = function(part){
 			return function(){
 				ctx.runningTask++;
 				if(ctx.isSuspend || ctx.isAbort){
@@ -255,13 +254,13 @@
 					taskQueue = [];
 					return doNext();
 				}
-				var started = 0;
-				var doUploadPart = function(contentMd5){
+				let started = 0;
+				let doUploadPart = function(contentMd5){
 					if(started){
 						return;
 					}
 					started = 1;
-					var uploadPartParam = {
+					let uploadPartParam = {
 						Bucket : ctx.uploadCheckpoint.bucket,
 						Key: ctx.uploadCheckpoint.key,
 						RequestDate : ctx.uploadCheckpoint.requestDate,
@@ -349,22 +348,22 @@
 		ctx.callback('the process of uploadFile is suspened, you can retry with the uploadCheckpoint');
 	};
 	
-	var resumable = {};
+	let resumable = {};
 	resumable.extend = function(ObsClient){
 		ObsClient.prototype.uploadFile = function(param, callback){
-			var that = this;
+			let that = this;
 			param = param || {};
-			var funcName = 'uploadFile';
-			var _callback = wrapCallback(callback, that.log, funcName);
-			var eventCallback = wrapEventCallback(param.EventCallback);
-			var taskNum = param.TaskNum || 1;
-			var progressCallback = param.ProgressCallback || function(){};
-			var resumeCallback = param.ResumeCallback || function(){};
-			var verifyMd5 = param.VerifyMd5 || false;
+			let funcName = 'uploadFile';
+			let _callback = wrapCallback(callback, that.log, funcName);
+			let eventCallback = wrapEventCallback(param.EventCallback);
+			let taskNum = param.TaskNum || 1;
+			let progressCallback = param.ProgressCallback || function(){};
+			let resumeCallback = param.ResumeCallback || function(){};
+			let verifyMd5 = param.VerifyMd5 || false;
 			
 			that.log.runLog('info', funcName, 'enter ' + funcName + '...' );
 			
-			var uploadCheckpoint = null;
+			let uploadCheckpoint = null;
 			if(param.UploadCheckpoint && param.UploadCheckpoint.sourceFile && param.UploadCheckpoint.fileStat && param.UploadCheckpoint.uploadId && param.UploadCheckpoint.md5 === calculateUploadCheckpointMD5(param.UploadCheckpoint)){
 				uploadCheckpoint = param.UploadCheckpoint;
 			}else{
@@ -384,7 +383,7 @@
 				that.log.runLog('debug', funcName, 'Begin to uploadFile to OBS from file:' + sourceFile.name);
 				
 				let fileSize = sourceFile.size;
-				let partSize = parseInt(param.PartSize);
+				let partSize = parseInt(param.PartSize, 10);
 				let partCount = 0;
 				
 				let parts = [];
@@ -393,7 +392,7 @@
 					partCount = 1;
 					parts.push({partNumber : 1, offset : 0, partSize : 0, isCompleted : false});
 				}else{
-					partSize = isNaN(partSize) ? defaultPartSize : (partSize < defaultPartSize ? defaultPartSize : (partSize > maxPartSize ? maxPartSize : partSize));
+					partSize = isNaN(partSize) ? defaultPartSize : (partSize < minPartSize ? defaultPartSize : (partSize > maxPartSize ? maxPartSize : partSize));
 					partCount = Math.floor(fileSize / partSize);
 					if(partCount >= 10000){
 						partSize = Math.floor(fileSize / 10000);
@@ -452,7 +451,7 @@
 			
 			uploadCheckpoint.requestDate = param.RequestDate;
 			
-			var ctx = {
+			let ctx = {
 				start : new Date().getTime(),
 				uploadCheckpoint : uploadCheckpoint,
 				funcName : funcName, 

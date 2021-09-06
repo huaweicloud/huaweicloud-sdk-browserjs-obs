@@ -13,25 +13,23 @@
  *
  */
 (function (root, factory) {
-  'use strict';
   if(typeof define === 'function' && define.amd){
 	  define('utils', ['URI', 'axios', 'jsSHA', 'Base64', 'md5', 'xml2js', 'obsModel', 'v2Model'], factory);
   }else{
 	  root['utils'] = factory(root['URI'], root['axios'], root['jsSHA'], root['Base64'], root['md5'], root['xml2js'], root['obsModel'], root['v2Model']);
   }
-		
-  
+
+
 })
 (this ? this : window, function(URI, axios, SHA, Base64, md5, xml2js, obsModel, v2Model){
-	
-'use strict';
+
 
 const crypto = {
 		createHmac : function(algorithm, key){
 			let algorithmKey;
-			if('sha1' === algorithm){
+			if(algorithm === 'sha1'){
 				algorithmKey = 'SHA-1';
-			}else if('sha512' === algorithm){
+			}else if(algorithm === 'sha512'){
 				algorithmKey = 'SHA-512';
 			}else{
 				algorithmKey = 'SHA-256';
@@ -43,7 +41,7 @@ const crypto = {
 					shaObj.update(message);
 					return this;
 				},
-				
+
 				digest : function(type){
 					if(type === 'hex'){
 						return shaObj.getHMAC('HEX');
@@ -55,9 +53,9 @@ const crypto = {
 				}
 			};
 		},
-		
+
 		createHash : function(algorithm){
-			if('md5' === algorithm){
+			if(algorithm === 'md5'){
 				return {
 					update : function(message){
 						if(!this.message){
@@ -67,7 +65,7 @@ const crypto = {
 						}
 						return this;
 					},
-					
+
 					digest : function(type){
 						if(type === 'hex'){
 							return md5.MD5(this.message);
@@ -84,23 +82,23 @@ const crypto = {
 					}
 				};
 			}
-			
+
 			let algorithmKey;
-			if('sha1' === algorithm){
+			if(algorithm === 'sha1'){
 				algorithmKey = 'SHA-1';
-			}else if('sha512' === algorithm){
+			}else if(algorithm === 'sha512'){
 				algorithmKey = 'SHA-512';
 			}else{
 				algorithmKey = 'SHA-256';
 			}
 			let shaObj = new SHA(algorithmKey, 'TEXT');
-			
+
 			return {
 				update : function(message){
 					shaObj.update(message);
 					return this;
 				},
-				
+
 				digest : function(type){
 					if(type === 'hex'){
 						return shaObj.getHash('HEX');
@@ -116,29 +114,29 @@ const crypto = {
 
 const urlLib = {
 		parse : function(url){
-			var uri = URI.parse(url);
+			let uri = URI.parse(url);
 			return {
 				hostname : uri.hostname,
-				
+
 				port : uri.port,
-				
+
 				host : uri.hostname,
-				
+
 				protocol : uri.protocol ? uri.protocol + ':' : '',
-				
-				query : uri.query, 
-					
+
+				query : uri.query,
+
 			    path : uri.path + (uri.query ? '?' + uri.query : ''),
-			    
+
 			    pathname :uri.path,
-			    	
+
 			    search : uri.query ? '?' + uri.query : ''
 			};
 		}
 };
 
 const CONTENT_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-const OBS_SDK_VERSION = '3.19.9';
+const OBS_SDK_VERSION = '3.20.1';
 
 const mimeTypes = {
     '7z' : 'application/x-7z-compressed',
@@ -238,7 +236,7 @@ const mimeTypes = {
     'xwd' : 'image/x-xwindowdump',
     'yaml' : 'text/yaml',
     'yml' : 'text/yaml',
-    'zip' : 'application/zip',	
+    'zip' : 'application/zip',
 };
 
 
@@ -254,6 +252,7 @@ const allowedResourceParameterNames = [
     'quota',
     'storageclass',
     'storagepolicy',
+    'mirrorbacktosource',
     'requestpayment',
     'versions',
     'versioning',
@@ -280,7 +279,24 @@ const allowedResourceParameterNames = [
     'response-content-encoding',
     'x-image-process',
     'x-oss-process',
-	'encryption'
+	'encryption',
+	'obsworkflowtriggerpolicy',
+	'x-workflow-limit',
+	'x-workflow-prefix',
+	'x-workflow-start',
+	'x-workflow-template-name',
+	'x-workflow-graph-name',
+	'x-workflow-execution-state',
+	'x-workflow-category',
+	'x-workflow-prefix',
+	'x-workflow-create',
+	'directcoldaccess',
+	'customdomain',
+	'cdnnotifyconfiguration',
+	'metadata',
+	'dispolicy',
+	'obscompresspolicy',
+	'sfsacl'
 ];
 
 
@@ -307,7 +323,8 @@ const allowedResponseHttpHeaderMetadataNames = [
     'access-control-max-age',
     'access-control-allow-methods',
     'access-control-expose-headers',
-    'connection'
+	'connection',
+	'x-obs-location-clustergroup-id'
 ];
 
 const commonHeaders = {
@@ -324,13 +341,13 @@ const obsAllowedAcl = ['private', 'public-read', 'public-read-write', 'public-re
 
 const v2AllowedAcl = ['private', 'public-read', 'public-read-write', 'authenticated-read', 'bucket-owner-read', 'bucket-owner-full-control', 'log-delivery-write'];
 
-const obsAllowedUri = ['Everyone'];
+const obsAllowedUri = ['Everyone', 'LogDelivery'];
 
 const v2AllowedUri = ['http://acs.amazonaws.com/groups/global/AllUsers', 'http://acs.amazonaws.com/groups/global/AuthenticatedUsers', 'http://acs.amazonaws.com/groups/s3/LogDelivery'];
 
-const obsAllowedEvent = ['ObjectCreated:*', 'ObjectCreated:Put', 'ObjectCreated:Post', 'ObjectCreated:Copy', 
+const obsAllowedEvent = ['ObjectCreated', 'ObjectRemoved', 'ObjectCreated:*', 'ObjectCreated:Put', 'ObjectCreated:Post', 'ObjectCreated:Copy',
     'ObjectCreated:CompleteMultipartUpload', 'ObjectRemoved:*', 'ObjectRemoved:Delete', 'ObjectRemoved:DeleteMarkerCreated'];
-const v2AllowedEvent = ['s3:ObjectCreated:*', 's3:ObjectCreated:Put', 's3:ObjectCreated:Post', 's3:ObjectCreated:Copy', 
+const v2AllowedEvent = ['ObjectCreated', 'ObjectRemoved', 's3:ObjectCreated:*', 's3:ObjectCreated:Put', 's3:ObjectCreated:Post', 's3:ObjectCreated:Copy',
     's3:ObjectCreated:CompleteMultipartUpload', 's3:ObjectRemoved:*', 's3:ObjectRemoved:Delete', 's3:ObjectRemoved:DeleteMarkerCreated'];
 
 const negotiateMethod = 'HeadApiVersion';
@@ -358,10 +375,10 @@ function encodeURIWithSafe(str, safe, skipEncoding){
 		return str;
 	}
 	let ret;
-	if(safe){
+	if (safe) {
 		ret = [];
-		for(let i=0;i<str.length;i++){
-			ret.push(safe.indexOf(str[i]) >=0 ? str[i] : encodeURIComponent(str[i]));
+		for (const element of str) {
+			ret.push(safe.indexOf(element) >= 0 ? element : encodeURIComponent(element));
 		}
 		ret = ret.join('');
 	}else{
@@ -379,11 +396,13 @@ function headerTostring(obj){
 }
 
 function parseObjectFromHeaders(sentAs, headers){
-	var metadata = {};
+	let metadata = {};
 	for(let key in headers){
-		let k = String(key).toLowerCase();
-		if(k.indexOf(sentAs) === 0){
-			metadata[k.slice(sentAs.length)] = headers[key];
+		if ({}.hasOwnProperty.call(headers, key)) {
+			let k = String(key).toLowerCase();
+			if (k.indexOf(sentAs) === 0) {
+				metadata[k.slice(sentAs.length)] = headers[key];
+			}
 		}
 	}
 	return metadata;
@@ -401,9 +420,9 @@ function isObject(obj){
 	return Object.prototype.toString.call(obj) === '[object Object]';
 }
 
-function utcToLocaleString(utcDate){
-	return utcDate ? new Date(Date.parse(utcDate)).toLocaleString() : '';
-}
+// function utcToLocaleString(utcDate){
+// 	return utcDate ? new Date(Date.parse(utcDate)).toLocaleString() : '';
+// }
 
 function makeObjFromXml(xml, bc){
 	if (typeof xml === 'object') {
@@ -417,38 +436,36 @@ function makeObjFromXml(xml, bc){
 }
 
 function getExpireDate(utcDateStr){
-	var date = new Date(Date.parse(utcDateStr));
-	var hour = date.getUTCHours();
-	var min = date.getUTCMinutes();
-	var sec = date.getUTCSeconds();
-	var day = date.getUTCDate();
-	var moth = date.getUTCMonth() + 1;
-	var year = date.getUTCFullYear();
-	var shortDate = '';
-	var longDate = '';
-	var expireDate = '';
+	let date = new Date(Date.parse(utcDateStr));
+	let hour = date.getUTCHours();
+	let min = date.getUTCMinutes();
+	let sec = date.getUTCSeconds();
+	let day = date.getUTCDate();
+	let moth = date.getUTCMonth() + 1;
+	let year = date.getUTCFullYear();
+	let expireDate = '';
 	expireDate += year + '-';
-	
+
 	if(moth < 10){
 		expireDate += '0';
 	}
 	expireDate += moth + '-';
-	
+
 	if(day < 10){
 		expireDate += '0';
 	}
 	expireDate += day + 'T';
-	
+
 	if(hour < 10){
 		expireDate += '0';
 	}
 	expireDate += hour + ':';
-	
+
 	if(min < 10){
 		expireDate += '0';
 	}
 	expireDate += min + ':';
-	
+
 	if(sec < 10){
 		expireDate += '0';
 	}
@@ -457,38 +474,38 @@ function getExpireDate(utcDateStr){
 }
 
 function getDates(utcDateStr){
-	var date = new Date(Date.parse(utcDateStr));
-	var hour = date.getUTCHours();
-	var min = date.getUTCMinutes();
-	var sec = date.getUTCSeconds();
-	var day = date.getUTCDate();
-	var moth = date.getUTCMonth() + 1;
-	var year = date.getUTCFullYear();
-	var shortDate = '';
-	var longDate = '';
+	let date = new Date(Date.parse(utcDateStr));
+	let hour = date.getUTCHours();
+	let min = date.getUTCMinutes();
+	let sec = date.getUTCSeconds();
+	let day = date.getUTCDate();
+	let moth = date.getUTCMonth() + 1;
+	let year = date.getUTCFullYear();
+	let shortDate = '';
+	let longDate = '';
 	shortDate += year;
-	
+
 	if(moth < 10){
 		shortDate += '0';
 	}
 	shortDate += moth;
-	
+
 	if(day < 10){
 		shortDate += '0';
 	}
 	shortDate += day;
-	
+
 	longDate += shortDate + 'T';
 	if(hour < 10){
 		longDate += '0';
 	}
 	longDate +=  hour;
-	
+
 	if(min < 10){
 		longDate += '0';
 	}
 	longDate +=  min;
-	
+
 	if(sec < 10){
 		longDate += '0';
 	}
@@ -497,37 +514,39 @@ function getDates(utcDateStr){
 }
 
 function getSignedAndCanonicalHeaders(header){
-	var arrheadKey = [];
-	var arrhead = {};
+	let arrheadKey = [];
+	let arrhead = {};
 	for(let key in header){
-		arrheadKey.push(key.toLowerCase());
-		arrhead[key.toLowerCase()] = header[key];
+		if ({}.hasOwnProperty.call(header, key)) {
+			arrheadKey.push(key.toLowerCase());
+			arrhead[key.toLowerCase()] = header[key];
+		}
 	}
 	arrheadKey = arrheadKey.sort();
-	var signedHeaders = '';
-	var canonicalHeaders = '';
+	let signedHeaders = '';
+	let canonicalHeaders = '';
 	for(let i = 0; i < arrheadKey.length; i++){
 		if(i !== 0){
 			signedHeaders += ';';
 		}
 		signedHeaders += arrheadKey[i];
-		canonicalHeaders +=  arrheadKey[i] + ':' + arrhead[arrheadKey[i]] + '\n';
+		canonicalHeaders += arrheadKey[i] + ':' + arrhead[arrheadKey[i]] + '\n';
 	}
 	return [signedHeaders, canonicalHeaders];
 }
 
 function createV4Signature(shortDate, sk, region, stringToSign){
-	var dateKey = crypto.createHmac('sha256', 'AWS4' + sk).update(shortDate).digest();
-	var dateRegionKey = crypto.createHmac('sha256', dateKey).update(region).digest();
-	var dateRegionServiceKey = crypto.createHmac('sha256', dateRegionKey).update('s3').digest();
-	var signingKey = crypto.createHmac('sha256',dateRegionServiceKey).update('aws4_request').digest();
-	var signature = crypto.createHmac('sha256',signingKey).update(stringToSign).digest('hex');
+	let dateKey = crypto.createHmac('sha256', 'AWS4' + sk).update(shortDate).digest();
+	let dateRegionKey = crypto.createHmac('sha256', dateKey).update(region).digest();
+	let dateRegionServiceKey = crypto.createHmac('sha256', dateRegionKey).update('s3').digest();
+	let signingKey = crypto.createHmac('sha256', dateRegionServiceKey).update('aws4_request').digest();
+	let signature = crypto.createHmac('sha256', signingKey).update(stringToSign).digest('hex');
 	return signature;
 }
 
 function getV4Signature(shortDate,longDate, sk, region, canonicalRequest){
-	var scop = shortDate + '/' + region + '/s3/aws4_request';
-	var stringToSign = 'AWS4-HMAC-SHA256' + '\n';
+	let scop = shortDate + '/' + region + '/s3/aws4_request';
+	let stringToSign = 'AWS4-HMAC-SHA256\n';
 	stringToSign += longDate + '\n';
 	stringToSign += scop + '\n';
 	stringToSign += crypto.createHash('sha256').update(canonicalRequest).digest('hex');
@@ -539,7 +558,7 @@ function Utils(log_in) {
 	this.ak = null;
 	this.sk = null;
 	this.securityToken = null;
-	this.isSecure = true; 
+	this.isSecure = true;
 	this.server = null;
 	this.pathStyle = false;
 	this.signatureContext = null;
@@ -565,9 +584,9 @@ Utils.prototype.refresh = function(ak, sk, securityToken){
 };
 
 Utils.prototype.initFactory = function(ak, sk, isSecure,
-		server, pathStyle, signature, region, port, timeout, securityToken, isSignatureNegotiation, 
+		server, pathStyle, signature, region, port, timeout, securityToken, isSignatureNegotiation,
 		isCname, urlPrefix, regionDomains, setRequestHeaderHook, useRawXhr){
-	
+
 	this.refresh(ak, sk, securityToken);
 
     this.urlPrefix = urlPrefix || '';
@@ -576,9 +595,9 @@ Utils.prototype.initFactory = function(ak, sk, isSecure,
 	if (!server) {
 		throw new Error('Server is not set');
 	}
-	
+
 	server = String(server).trim();
-	
+
 	if(server.indexOf('https://') === 0){
 		server = server.slice('https://'.length);
 		isSecure = true;
@@ -586,41 +605,41 @@ Utils.prototype.initFactory = function(ak, sk, isSecure,
 		server = server.slice('http://'.length);
 		isSecure = false;
 	}
-	
+
 	let index = server.lastIndexOf('/');
 	while(index >= 0){
 		server = server.slice(0, index);
 		index = server.lastIndexOf('/');
 	}
-	
+
 	index = server.indexOf(':');
 	if(index >= 0){
 		port = server.slice(index + 1);
 		server = server.slice(0, index);
 	}
 	this.server = server;
-	
+
 	if(/^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/.test(this.server)){
 		pathStyle = true;
 	}
-	
+
 	if (isSecure !== undefined) {
-		this.isSecure = Boolean(isSecure);				
+		this.isSecure = isSecure;
 	}
 	if (pathStyle !== undefined) {
-		this.pathStyle = Boolean(pathStyle);				
+		this.pathStyle = pathStyle;
 	}
-	
+
 	if (signature !== undefined) {
-		signature = String(signature).trim().toLowerCase();			
+		signature = String(signature).trim().toLowerCase();
 	}else{
 		signature = 'obs';
 	}
-	
+
 	if(isSignatureNegotiation !== undefined){
-		this.isSignatureNegotiation = Boolean(isSignatureNegotiation);
+		this.isSignatureNegotiation = isSignatureNegotiation;
 	}
-	
+
 	this.isCname = isCname;
 
 	if(this.pathStyle || this.isCname){
@@ -629,19 +648,19 @@ Utils.prototype.initFactory = function(ak, sk, isSecure,
 			signature = 'v2';
 		}
 	}
-	
+
 	this.signatureContext = signature === 'obs' ? obsSignatureContext : v2SignatureContext;
-	
+
 	if(region !== undefined){
 		this.region = String(region);
 	}
-	
-	this.port = port ? parseInt(port) : (this.isSecure ? 443 : 80);
-	
+
+	this.port = port ? parseInt(port, 10) : (this.isSecure ? 443 : 80);
+
 	if(timeout !== undefined){
-		this.timeout = parseInt(timeout);
+		this.timeout = parseInt(timeout, 10);
 	}
-	
+
 	if(useRawXhr !== undefined){
 		this.useRawXhr = useRawXhr;
 	}
@@ -701,7 +720,7 @@ Utils.prototype.URIAdapter = function(value, signatureContext){
 		return '';
 	}
 	if(v2AllowedUri.indexOf(value) >= 0){
-		return value; 
+		return value;
 	}
 	if(value === 'Everyone' || value === 'AllUsers'){
 		return 'http://acs.amazonaws.com/groups/global/AllUsers';
@@ -732,7 +751,7 @@ Utils.prototype.StorageClassAdapter = function(value, signatureContext){
 		return '';
 	}
 	if(v2AllowedStorageClass.indexOf(value) >= 0){
-		return value; 
+		return value;
 	}
 	if(value === 'WARM'){
 		return 'STANDARD_IA';
@@ -757,7 +776,7 @@ Utils.prototype.ACLAdapter = function(value, signatureContext){
 	}else if(value === 'public-read-write-delivered'){
 		value = 'public-read-write';
 	}
-	
+
 	if(v2AllowedAcl.indexOf(value) >= 0){
 		return value;
 	}
@@ -765,7 +784,7 @@ Utils.prototype.ACLAdapter = function(value, signatureContext){
 };
 
 Utils.prototype.doExec = function(funcName, param, callback){
-	var opt = this.makeParam(funcName, param);
+	let opt = this.makeParam(funcName, param);
 	if('err' in opt){
 		return callback(opt.err, null);
 	}
@@ -779,14 +798,14 @@ Utils.prototype.doNegotiation = function(funcName, param, callback, checkBucket,
 		let item = this.bucketSignatureCache[param.Bucket];
 		if(item && item.signatureContext && item.expireTime > new Date().getTime()){
 			param.signatureContext = item.signatureContext;
-			var opt = this.makeParam(funcName, param);
+			let opt = this.makeParam(funcName, param);
 			if('err' in opt){
 				return callback(opt.err, null);
 			}
 			opt.signatureContext = item.signatureContext;
 			return this.sendRequest(funcName, opt, callback);
 		}
-		
+
 		o = this.bucketEventEmitters[param.Bucket];
 		if(!o){
 			o = {
@@ -799,18 +818,18 @@ Utils.prototype.doNegotiation = function(funcName, param, callback, checkBucket,
 			};
 			this.bucketEventEmitters[param.Bucket] = o;
 		}
-		
+
 		if(o.s){
 			o.e.push(function(){
 				that.doNegotiation(funcName, param, callback, checkBucket, checkCache, setCache);
 			});
 			return;
 		}
-			
+
 		o.e = [];
 		o.s = 1;
 	}
-	
+
 	this.doExec(negotiateMethod, checkBucket ? {Bucket:param.Bucket} : {},  function(err, result){
 		if(err){
 			callback(err, null);
@@ -828,8 +847,8 @@ Utils.prototype.doNegotiation = function(funcName, param, callback, checkBucket,
 			}
 			return;
 		}
-		
-		var signatureContext = v2SignatureContext;
+
+		let signatureContext = v2SignatureContext;
 		if(result.CommonMsg.Status < 300 && result.InterfaceResult && result.InterfaceResult.ApiVersion >= '3.0'){
 			signatureContext = obsSignatureContext;
 		}
@@ -839,13 +858,13 @@ Utils.prototype.doNegotiation = function(funcName, param, callback, checkBucket,
 				expireTime : new Date().getTime() + 15 + (Math.ceil(Math.random()*5)) * 60 * 1000
 			};
 		}
-		
+
 		if(o){
 			o.s = 0;
 			o.n();
 		}
 		param.signatureContext = signatureContext;
-		var opt = that.makeParam(funcName, param);
+		let opt = that.makeParam(funcName, param);
 		if('err' in opt){
 			return callback(opt.err, null);
 		}
@@ -855,15 +874,15 @@ Utils.prototype.doNegotiation = function(funcName, param, callback, checkBucket,
 };
 
 Utils.prototype.exec = function(funcName, param, callback){
-	var that = this;
+	let that = this;
 	if(that.isSignatureNegotiation && funcName !== negotiateMethod){
 		if(funcName === 'ListBuckets'){
 			that.doNegotiation(funcName, param, callback, false, false, false);
 		}else if(funcName === 'CreateBucket'){
 			let _callback = function(err, result){
-				if(!err && result.CommonMsg.Status === 400 && 
-						result.CommonMsg.Message === 'Unsupported Authorization Type' && 
-						param.signatureContext && 
+				if(!err && result.CommonMsg.Status === 400 &&
+						result.CommonMsg.Message === 'Unsupported Authorization Type' &&
+						param.signatureContext &&
 						param.signatureContext.signature === 'v2'){
 					param.signatureContext = v2SignatureContext;
 					let opt = that.makeParam(funcName, param);
@@ -876,7 +895,7 @@ Utils.prototype.exec = function(funcName, param, callback){
 				}
 				callback(err, result);
 			};
-			
+
 			that.doNegotiation(funcName, param, _callback, false, true, false);
 		}else{
 			that.doNegotiation(funcName, param, callback, true, true, true);
@@ -887,12 +906,12 @@ Utils.prototype.exec = function(funcName, param, callback){
 };
 
 
-Utils.prototype.sliceBlob = function (blob, start, end, type) {  
-  type = type || blob.type;  
-  if (blob.mozSlice) {  
-      return blob.mozSlice(start, end, type);  
-  } 
-  if (blob.webkitSlice) {  
+Utils.prototype.sliceBlob = function (blob, start, end, type) {
+  type = type || blob.type;
+  if (blob.mozSlice) {
+      return blob.mozSlice(start, end, type);
+  }
+  if (blob.webkitSlice) {
       return blob.webkitSlice(start, end, type);
   }
   return blob.slice(start, end, type);
@@ -900,7 +919,7 @@ Utils.prototype.sliceBlob = function (blob, start, end, type) {
 
 
 Utils.prototype.toXml = function(mXml, xmlMeta, root, sentAs, signatureContext){
-	var xml = ''; 
+	let xml = '';
 	if(root !== null){
 		xml += this.buildXml(mXml, xmlMeta, root, sentAs, signatureContext);
 		return xml;
@@ -915,11 +934,14 @@ Utils.prototype.toXml = function(mXml, xmlMeta, root, sentAs, signatureContext){
 };
 
 Utils.prototype.buildXml = function(mXml, xmlMeta, key, sentAs, signatureContext){
-	var xml = '';
+	let xml = '';
 	let type = xmlMeta.type;
 	if(type === 'array'){
 		for(let i = 0; i < mXml[key].length; i++){
 			if(xmlMeta.items.type === 'object'){
+				if (!mXml[key][i]) {
+					return xml;
+				}
 				let result = this.toXml(mXml[key][i], xmlMeta.items.parameters, null, null, signatureContext);
 				if(result !== ''){
 					xml += '<'+sentAs +'>'+ result + '</'+sentAs +'>';
@@ -931,6 +953,9 @@ Utils.prototype.buildXml = function(mXml, xmlMeta, key, sentAs, signatureContext
 			}
 		}
 	}else if(type === 'object'){
+		if (!mXml[key]) {
+			return xml;
+		}
 		let result = this.toXml(mXml[key], xmlMeta.parameters, null, null, signatureContext);
 		if(result !== ''){
 			xml += '<'+sentAs;
@@ -945,7 +970,7 @@ Utils.prototype.buildXml = function(mXml, xmlMeta, key, sentAs, signatureContext
 			xml += '>';
 			xml += result + '</'+sentAs +'>';
 		}
-		
+
 	}else if(type === 'adapter'){
 		xml += '<' + sentAs + '>' + String(this[key + 'Adapter'](mXml[key], signatureContext)).replace(/&/g, '&amp;').replace(/'/g, '&apos;').replace(/"/g, '&quot;') + '</' + sentAs + '>';
 	}else if(type !== 'ignore'){
@@ -958,19 +983,28 @@ Utils.prototype.buildXml = function(mXml, xmlMeta, key, sentAs, signatureContext
 	return xml;
 };
 
-Utils.prototype.jsonToObject = function(model, obj, root){
-	var opt = {};
+Utils.prototype.jsonToObject = function(model, obj, root, ifRootXMlDecode){
+	let opt = {};
 	if(root !== null){
-		this.buildObject(model, obj, root, opt);
+		this.buildObject(model, obj, root, opt, ifRootXMlDecode);
 	}else{
 		for(let key in model){
-			this.buildObject(model, obj, key, opt);
+			if ({}.hasOwnProperty.call(model, key)) {
+				this.buildObject(model, obj, key, opt, ifRootXMlDecode);
+			}
 		}
 	}
 	return opt;
 };
 
-Utils.prototype.buildObject = function(model, obj, key, opt){
+Utils.prototype.buildObject = function(model, obj, key, opt, ifRootXMlDecode){
+
+	let setValue = function (value) {
+		return value && model[key].decode && ifRootXMlDecode
+		? decodeURIComponent(value.replace(/\+/g, '%20'))
+		: value;
+	}
+
 	if(isObject(obj)){
 		let flag = true;
 		let wrapper = model[key].wrapper;
@@ -982,142 +1016,146 @@ Utils.prototype.buildObject = function(model, obj, key, opt){
 			let sentAs = model[key].sentAs || key;
 			if(sentAs in obj){
 				if(model[key].type === 'object'){
-					opt[key] = this.jsonToObject(model[key].parameters, obj[sentAs], null);
+					opt[key] = this.jsonToObject(model[key].parameters, obj[sentAs], null, ifRootXMlDecode);
 				}else if(model[key].type === 'array'){
 					let arr = [];
 					if(!isArray(obj[sentAs])){
-						arr[0] = model[key].items.type === 'object' ? this.jsonToObject(model[key].items.parameters, obj[sentAs], null) : (obj[sentAs]['#text'] || '');
+						arr[0] = model[key].items.type === 'object' ? this.jsonToObject(model[key].items.parameters, obj[sentAs], null, ifRootXMlDecode) : setValue(obj[sentAs]['#text'] || '');
 					}else{
 						for (let i = 0; i < obj[sentAs].length; i++ ){
-							arr[i] = model[key].items.type === 'object' ? this.jsonToObject(model[key].items.parameters, obj[sentAs][i], null) : obj[sentAs][i]['#text'];
+							arr[i] = model[key].items.type === 'object' ? this.jsonToObject(model[key].items.parameters, obj[sentAs][i], null, ifRootXMlDecode) : setValue(obj[sentAs][i]['#text']);
 						}
 					}
 					opt[key] = arr;
 				}else{
-					opt[key] = obj[sentAs]['#text'];
+					opt[key] = setValue(obj[sentAs]['#text']);
 				}
 			}
 		}
 	}
-	
+
 	if(opt[key] === undefined){
 		if(model[key].type === 'object'){
-			opt[key] = model[key].parameters ? this.jsonToObject(model[key].parameters, null, null) : {};
+			opt[key] = model[key].parameters ? this.jsonToObject(model[key].parameters,null,null,ifRootXMlDecode) : {};
 		}else if(model[key].type === 'array'){
 			opt[key] = [];
-		}else{
-			opt[key] = '';
 		}
 	}
-	
+
 };
 
 Utils.prototype.makeParam = function(methodName, param){
-	var signatureContext = param.signatureContext || this.signatureContext;
-	var model = signatureContext.signature === 'obs' ? obsModel[methodName] : v2Model[methodName];
-	var method = model.httpMethod;
-	var uri = '/';
-	var urlPath = '';
-	var xml = '';
-	var exheaders = {};
-	var opt = {};
+	let signatureContext = param.signatureContext || this.signatureContext;
+	let model = signatureContext.signature === 'obs' ? obsModel[methodName] : v2Model[methodName];
+	let method = model.httpMethod;
+	let uri = '/';
+	let urlPath = '';
+	let xml = '';
+	let exheaders = {};
+	let opt = {};
 	opt.$requestParam = param;
-	
+
 	if ('urlPath' in model){
 		urlPath += '?';
 		urlPath += model.urlPath;
 	}
 	for (let key in model.parameters){
-		let meta = model.parameters[key];
-		if(key === 'Bucket' && this.isCname){
-			continue;
-		}
-		
-		let _value = param[key];
-		
-		if (meta.required && (_value === null || _value === undefined || (Object.prototype.toString.call(_value) === '[object String]' && _value === ''))){
-			opt.err = key + ' is a required element!';
-			this.log.runLog('error', methodName, opt.err);
-			return opt;
-		}
-		
-		if(_value !== null && _value !== undefined){
-			if(meta.type === 'srcFile' || meta.type === 'dstFile'){
-				opt[meta.type] = _value;
+		if ({}.hasOwnProperty.call(model.parameters, key)) {
+			let meta = model.parameters[key];
+			if (key === 'Bucket' && this.isCname) {
 				continue;
 			}
-			
-			if(meta.type === 'plain'){
-				opt[key] = _value;
+
+			let _value = param[key];
+
+			if (meta.required && (_value === null || _value === undefined || (Object.prototype.toString.call(_value) === '[object String]' && _value === ''))) {
+				opt.err = key + ' is a required element!';
+				this.log.runLog('error', methodName, opt.err);
+				return opt;
 			}
-			
-			let sentAs = meta.sentAs || key;
-			
-			if(meta.withPrefix){
-				sentAs = signatureContext.headerPrefix + sentAs;
-			}
-			
-			if(meta.location === 'uri'){
-				if(uri !== '/'){
-					uri += '/';
+
+			if (_value !== null && _value !== undefined) {
+				if (meta.type === 'srcFile' || meta.type === 'dstFile') {
+					opt[meta.type] = _value;
+					continue;
 				}
-				uri += _value;
-			}else if(meta.location === 'header'){
-				let safe = meta.encodingSafe || ' ;/?:@&=+$,';
-				if(meta.type === 'object'){
-					if(signatureContext.headerMetaPrefix === sentAs){
-						for(let item in _value){
-							let value = _value[item];
-							item = String(item).trim().toLowerCase();
-							exheaders[item.indexOf(sentAs) === 0 ? item: sentAs + item] =  encodeURIWithSafe(value, safe);
+
+				if (meta.type === 'plain') {
+					opt[key] = _value;
+				}
+
+				let sentAs = meta.sentAs || key;
+
+				if (meta.withPrefix) {
+					sentAs = signatureContext.headerPrefix + sentAs;
+				}
+
+				if (meta.location === 'uri') {
+					if (uri !== '/') {
+						uri += '/';
+					}
+					uri += _value;
+				} else if (meta.location === 'header') {
+					let safe = meta.encodingSafe || ' ;/?:@&=+$,';
+					if (meta.type === 'object') {
+						if (signatureContext.headerMetaPrefix === sentAs) {
+							for (let item in _value) {
+								if ({}.hasOwnProperty.call(_value, item)) {
+									let value = _value[item];
+									item = String(item).trim().toLowerCase();
+									exheaders[item.indexOf(sentAs) === 0 ? item : sentAs + item] = encodeURIWithSafe(value, safe);
+								}
+							}
 						}
+					} else if (meta.type === 'array') {
+						let arr = [];
+						for (let item in _value) {
+							if ({}.hasOwnProperty.call(_value, item)) {
+								arr[item] = encodeURIWithSafe(_value[item], safe);
+							}
+						}
+						exheaders[sentAs] = arr;
+					} else if (meta.type === 'password') {
+						let encodeFunc = window.btoa ? window.btoa : Base64.encode;
+						exheaders[sentAs] = encodeFunc(_value);
+						let pwdSentAs = meta.pwdSentAs || (sentAs + '-MD5');
+						exheaders[pwdSentAs] = this.rawBufMD5(_value);
+					} else if (meta.type === 'number' && Number(_value)) {
+						exheaders[sentAs] = encodeURIWithSafe(String(_value), safe);
+					} else if (meta.type === 'boolean') {
+						exheaders[sentAs] = encodeURIWithSafe(_value ? 'true' : 'false', safe);
+					} else if (meta.type === 'adapter') {
+						let val = this[key + 'Adapter'](_value, signatureContext);
+						if (val) {
+							exheaders[sentAs] = encodeURIWithSafe(String(val), safe);
+						}
+					} else {
+						exheaders[sentAs] = encodeURIWithSafe(String(_value), safe, meta.skipEncoding);
 					}
-				}else if(meta.type === 'array'){
-					let arr = [];
-					for(let item in _value){
-						arr[item] = encodeURIWithSafe(_value[item], safe);
+				} else if (meta.location === 'urlPath') {
+					let sep = urlPath === '' ? '?' : '&';
+					let value = _value;
+					if (meta.type !== 'number' || (meta.type === 'number' && Number(value) >= 0)) {
+						urlPath += sep + encodeURIWithSafe(sentAs, '/') + '=' + encodeURIWithSafe(String(value), '/');
 					}
-					exheaders[sentAs] = arr;
-				}else if(meta.type === 'password'){
-					let encodeFunc = window.btoa ? window.btoa : Base64.encode;
-					exheaders[sentAs] = encodeFunc(_value);
-					let pwdSentAs = meta.pwdSentAs || (sentAs + '-MD5');
-					exheaders[pwdSentAs] = this.rawBufMD5(_value);
-				}else if(meta.type === 'number' && Number(_value)){
-					exheaders[sentAs] = encodeURIWithSafe(String(_value), safe);
-				}else if(meta.type === 'boolean'){
-					exheaders[sentAs] = encodeURIWithSafe(_value ? 'true' : 'false', safe);
-				}else if(meta.type === 'adapter'){
-					let val = this[key + 'Adapter'](_value, signatureContext);
-					if(val){
-						exheaders[sentAs] = encodeURIWithSafe(String(val), safe);
+				} else if (meta.location === 'xml') {
+					let mxml = this.toXml(param, meta, key, sentAs, signatureContext);
+					if (mxml) {
+						xml += mxml;
 					}
-				}else {
-					exheaders[sentAs] = encodeURIWithSafe(String(_value), safe, meta.skipEncoding);
+				} else if (meta['location'] === 'body') {
+					xml = _value;
 				}
-			}else if(meta.location === 'urlPath'){
-				let sep = urlPath === '' ? '?' : '&';
-				let value = _value;
-				if(meta.type !== 'number' || (meta.type === 'number' && Number(value) >= 0)){
-					urlPath += sep + encodeURIWithSafe(sentAs, '/') + '=' + encodeURIWithSafe(String(value), '/');
-				}
-			}else if(meta.location === 'xml'){
-				let mxml = this.toXml(param, meta, key, sentAs, signatureContext);
-				if(mxml){
-					xml += mxml;
-				}
-			}else if(meta['location'] === 'body'){
-				xml = _value;
-			}		
+			}
 		}
 	}
-	
+
 	let isFile = opt.dstFile === 'file';
-	
+
 	if(!('Content-Type' in exheaders) && !isFile){
 		exheaders['Content-Type'] = 'binary/octet-stream';
 	}
-	
+
 	if('data' in model  && 'xmlRoot' in model.data){
 		if(xml || model.data.xmlAllowEmpty){
 			let xmlRoot = model.data.xmlRoot;
@@ -1128,9 +1166,9 @@ Utils.prototype.makeParam = function(methodName, param){
 	if(isFile){
 		opt.rawUri = uri;
 	}
-	
+
 	exheaders.Host = this.server + ((this.port === 80 || this.port === 443) ? '' : ':' + this.port);
-	
+
 	if(!this.pathStyle && !this.isCname){
 		let uriList = uri.split('/');
 		if(uriList.length >= 2 && uriList[1]){
@@ -1158,9 +1196,9 @@ Utils.prototype.makeParam = function(methodName, param){
 		opt.xml = xml;
 		this.log.runLog('debug', methodName, 'request content:' + xml);
 	}
-	
+
 	opt.headers = exheaders;
-	
+
 	if('srcFile' in opt){
 		if((opt.srcFile instanceof window.File) || (opt.srcFile instanceof window.Blob)){
 			let fileSize = opt.srcFile.size;
@@ -1171,7 +1209,7 @@ Utils.prototype.makeParam = function(methodName, param){
 				if('PartSize' in opt){
 					partSize = opt.PartSize;
 				}else if('Content-Length' in opt.headers){
-					partSize = parseInt(opt.headers['Content-Length']);
+					partSize = parseInt(opt.headers['Content-Length'], 10);
 				}else{
 					partSize = fileSize;
 				}
@@ -1187,7 +1225,9 @@ Utils.prototype.makeParam = function(methodName, param){
 
 Utils.prototype.parseCommonHeaders = function(opt, headers, signatureContext){
 	for(let key in commonHeaders){
-		opt.InterfaceResult[commonHeaders[key]] = headers[key];
+		if ({}.hasOwnProperty.call(commonHeaders, key)) {
+			opt.InterfaceResult[commonHeaders[key]] = headers[key];
+		}
 	}
 	opt.InterfaceResult.RequestId = headers[signatureContext.headerPrefix + 'request-id'];
 	opt.InterfaceResult.Id2 = headers[signatureContext.headerPrefix + 'id-2'];
@@ -1203,11 +1243,11 @@ Utils.prototype.contrustCommonMsg = function(opt, obj, headers, signatureContext
 			continue;
 		}
 		let sentAs = obj[key].sentAs || key;
-		
+
 		if(obj[key].withPrefix){
 			sentAs = signatureContext.headerPrefix + sentAs;
 		}
-		
+
 		if(obj[key].type === 'object'){
 			opt.InterfaceResult[key] = parseObjectFromHeaders(sentAs, headers);
 		}else{
@@ -1226,12 +1266,12 @@ Utils.prototype.contrustCommonMsg = function(opt, obj, headers, signatureContext
 
 
 Utils.prototype.getRequest = function(methodName, serverback, signatureContext, retryCount, params, bc){
-    var regionDomains = this.regionDomains;
-	var opt = {};
-	var log = this.log;
-	var model = signatureContext.signature === 'obs' ? obsModel[methodName + 'Output'] : v2Model[methodName + 'Output'];
+    let regionDomains = this.regionDomains;
+	let opt = {};
+	let log = this.log;
+	let model = signatureContext.signature === 'obs' ? obsModel[methodName + 'Output'] : v2Model[methodName + 'Output'];
 	model = model || {};
-	var obj = model.parameters || {};
+	let obj = model.parameters || {};
 	opt.CommonMsg = {
 		Status : serverback.status,
 		Code : '',
@@ -1240,19 +1280,19 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
 		RequestId : '',
 		InterfaceResult : null
 	};
-	
-	var headers = serverback.headers;
-	var headersStr = headerTostring(headers);
-	
+
+	let headers = serverback.headers;
+	let headersStr = headerTostring(headers);
+
 	log.runLog('info', methodName, 'get response start, statusCode:' + serverback.status);
-	log.runLog('debug', methodName, 'response msg :' + 'statusCode:' + serverback.status + ', headers:' + headersStr);
-	
-	var doLog = function(){
-		var logMsg = 'Status:' + opt.CommonMsg.Status + ', Code:' + opt.CommonMsg.Code + ', Message:' + opt.CommonMsg.Message;
+	log.runLog('debug', methodName, 'response msg :statusCode:' + serverback.status + ', headers:' + headersStr);
+
+	let doLog = function(){
+		let logMsg = 'Status:' + opt.CommonMsg.Status + ', Code:' + opt.CommonMsg.Code + ', Message:' + opt.CommonMsg.Message;
 		log.runLog('debug', methodName, 'exec interface ' + methodName + ' finish, ' + logMsg);
-		bc(null,opt);
+		bc(null, opt);
 	};
-	
+
 	if(serverback.status >= 300 && serverback.status < 400 && serverback.status !== 304 && retryCount <= 5){
         let location = headers.location || headers.Location;
 		if(location){
@@ -1260,6 +1300,7 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
 			log.runLog('warn', methodName, err);
 			let redirectErr = new Error('redirect');
 			redirectErr.location = location;
+			redirectErr.bucketLocation = headers['x-amz-bucket-region'] || headers['x-obs-bucket-region'];
 			return bc(redirectErr);
 		}
 		let bucketLocation = headers['x-amz-bucket-region'] || headers['x-obs-bucket-location'];
@@ -1273,10 +1314,10 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
             let redirectErr = new Error('redirect');
 			redirectErr.location = regionServer;
             return bc(redirectErr);
-        } 
+        }
 		log.runLog('error', methodName, 'get redirect code 3xx, but no location in headers');
-	} 
-		
+	}
+
 	if(serverback.status < 300){
 		let body = serverback.data;
 		this.contrustCommonMsg(opt, obj, headers, signatureContext);
@@ -1286,7 +1327,7 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
 			log.runLog('debug', methodName, 'response body length:' + body.length);
 		}
 		log.runLog('debug', methodName, respMsg);
-		
+
 		if(body && ('data' in model)){
 			if(model.data.type === 'xml'){
 				let that = this;
@@ -1295,23 +1336,24 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
 						log.runLog('error', methodName, 'change xml to json err [' + headerTostring(err) + ']' );
 						return bc(err, null);
 					}
-					
+
 					let tempResult = result;
 					if(model.data.xmlRoot && (model.data.xmlRoot in tempResult)){
 						tempResult = result[model.data.xmlRoot];
 					}
+					let ifRootXMlDecode = tempResult.EncodingType ? true : false;
 					if(isObject(tempResult)){
 						for (let key in obj){
 							if(obj[key].location === 'xml'){
-								opt.InterfaceResult[key] = that.jsonToObject(obj,tempResult,key)[key];
+								opt.InterfaceResult[key] = that.jsonToObject(obj,tempResult,key,ifRootXMlDecode)[key];
 							}
 						}
 					}
-					
+
 					doLog();
 				});
 			}
-			
+
 			if(model.data.type === 'body'){
 				for (let key in obj){
 					if(obj[key].location === 'body'){
@@ -1323,7 +1365,7 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
 		}
 		return doLog();
 	}
-	
+
 	let body = serverback.data;
 	let respMsg = 'Status: ' + opt.CommonMsg.Status + ', headers: ' +  headersStr;
 	if(body !== ''){
@@ -1333,14 +1375,14 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
 	opt.CommonMsg.RequestId = headers[signatureContext.headerPrefix + 'request-id'];
 	opt.CommonMsg.Id2 = headers[signatureContext.headerPrefix + 'id2'];
 	opt.CommonMsg.Indicator = headers['x-reserved-indicator'];
-	
+
 	log.runLog('info', methodName, 'request finished with request id:' + opt.CommonMsg.RequestId);
 	log.runLog('debug', methodName, respMsg);
-	
+
 	if(!body){
 		return doLog();
 	}
-	
+
 	return makeObjFromXml(body, function(err, re){
 		if(err){
 			log.runLog('error', methodName, 'change xml to json err [' + headerTostring(err) + ']' );
@@ -1348,17 +1390,10 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
 		}else if(re){
 			if ('Error' in re) {
 				let errMsg = re.Error;
-				if('Code' in errMsg){
-					opt.CommonMsg.Code = errMsg.Code['#text'];
-				}
-				if('Message' in errMsg){
-					opt.CommonMsg.Message = errMsg.Message['#text'];
-				}
-				if('HostId' in errMsg){
-					opt.CommonMsg.HostId = errMsg.HostId['#text'];
-				}
-				if(('RequestId' in errMsg) && errMsg.RequestId['#text']){
-					opt.CommonMsg.RequestId = errMsg.RequestId['#text'];
+				for(let param in errMsg) {
+					if (errMsg[param] && errMsg[param]['#text']) {
+						opt.CommonMsg[param] = errMsg[param]['#text'];
+					}
 				}
 			} else {
 				let errMsg = re;
@@ -1375,7 +1410,7 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
 					opt.CommonMsg.RequestId = errMsg.request_id;
 				}
 			}
-			
+
 			log.runLog('error', methodName, 'request error with error code:' + opt.CommonMsg.Code + ', error message:' + opt.CommonMsg.Message + ', request id:' + opt.CommonMsg.RequestId);
 		}
 		doLog();
@@ -1383,12 +1418,12 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
 };
 
 Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
-	var log = this.log;
-	var server = this.server;
-	var body = opt.xml || null;
-	var signatureContext = opt.signatureContext || this.signatureContext;
-	delete opt.headers.Authorization;//retry bug fix
-	
+	let log = this.log;
+	// let server = this.server;
+	let body = opt.xml || null;
+	let signatureContext = opt.signatureContext || this.signatureContext;
+	delete opt.headers.Authorization; // retry bug fix
+
 	if(opt.dstFile === 'file'){
 		let queryParams = {};
 		if(opt.urlPath){
@@ -1403,11 +1438,11 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 				}
 			}
 		}
-		
+
 		let rawUri = opt.rawUri.split('/');
 		let bucketName = rawUri[1];
 		let objectKey = opt.rawUri.slice(('/' + bucketName + '/').length);
-		
+
 		let ret = {};
 		ret.CommonMsg = {
 			Status : 0,
@@ -1416,8 +1451,8 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 			HostId : ''
 		};
 		ret.InterfaceResult = {};
-		var model = signatureContext.signature === 'obs' ? obsModel[methodName + 'Output'] : v2Model[methodName + 'Output'];
-		var obj = model.parameters;
+		let model = signatureContext.signature === 'obs' ? obsModel[methodName + 'Output'] : v2Model[methodName + 'Output'];
+		let obj = model.parameters;
 		for (let key in obj){
 			if(obj[key].location === 'body'){
 				ret.InterfaceResult[key] = this.createSignedUrlSync({
@@ -1434,10 +1469,10 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 		}
 		return bc(null, ret);
 	}
-	
-	var requestDate = opt.$requestParam.RequestDate;
-	var nowDate;
-	var requestDateType = Object.prototype.toString.call(requestDate);
+
+	let requestDate = opt.$requestParam.RequestDate;
+	let nowDate;
+	let requestDateType = Object.prototype.toString.call(requestDate);
 	if(requestDateType === '[object Date]'){
 		nowDate = requestDate;
 	}else if(requestDateType === '[object String]'){
@@ -1445,19 +1480,19 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 			nowDate = new Date();
 			nowDate.setTime(Date.parse(requestDate));
 		}catch(e){
-			//ignore
+			// ignore
 		}
 	}
-	
+
 	if(!nowDate){
 		nowDate = new Date();
 	}
-	
-	var utcDateStr = nowDate.toUTCString();
-	var isV4 = signatureContext.signature.toLowerCase() === 'v4';
+
+	let utcDateStr = nowDate.toUTCString();
+	let isV4 = signatureContext.signature.toLowerCase() === 'v4';
 	opt.headers[signatureContext.headerPrefix + 'date'] = isV4 ? getDates(utcDateStr)[1] : utcDateStr;
-	var path = (opt.requestUri ? opt.requestUri : opt.uri) + opt.urlPath;
-	
+	let path = (opt.requestUri ? opt.requestUri : opt.uri) + opt.urlPath;
+
 	if(this.ak && this.sk && methodName !== negotiateMethod){
 		if(this.securityToken){
 			opt.headers[signatureContext.headerPrefix + 'security-token'] = this.securityToken;
@@ -1469,42 +1504,59 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 		}
 	}
 
-	var ex = opt.headers;
+	let ex = opt.headers;
     if (isFunction(this.setRequestHeaderHook)) {
         this.setRequestHeaderHook(ex, opt.$requestParam, methodName);
     }
-	var host = ex.Host;
+	let host = ex.Host;
 	let method = opt.method;
-	var header_msg = {};
+	let header_msg = {};
 	for (let key in ex){
-		header_msg[key] = ex[key];
+		if ({}.hasOwnProperty.call(ex, key)) {
+			header_msg[key] = ex[key];
+		}
 	}
 	header_msg.Authorization = '****';
-	var msg = 'method:' + method + ', path:' + path + 'headers:' + headerTostring(header_msg);
+	let msg = 'method:' + method + ', path:' + path + 'headers:' + headerTostring(header_msg);
 	if (body) {
 		msg += 'body:' + body;
 	}
 	log.runLog('info', methodName, 'prepare request parameters ok,then Send request to service start');
-	log.runLog('debug',methodName, 'request msg:' + msg);
-	
-	var _isSecure = opt.protocol ? opt.protocol.toLowerCase().indexOf('https') === 0 : this.isSecure;
-	var port = opt.port || this.port;
-	
+	log.runLog('debug', methodName, 'request msg:' + msg);
+
+	let _isSecure = opt.protocol ? opt.protocol.toLowerCase().indexOf('https') === 0 : this.isSecure;
+	let port = opt.port || this.port;
+
 	// avoid to set unsafe headers
 	delete ex.Host;
 	delete ex['Content-Length'];
-	
-	var responseType = 'text';
+
+	// 	ex['X-Requested-With'] = "XMLHttpRequest";
+	let responseType = 'text';
 	if(opt.dstFile && opt.dstFile !== 'file' && (opt.dstFile === 'arraybuffer' || opt.dstFile === 'blob')){
 		responseType = String(opt.dstFile);
 	}
-	
-	var start = nowDate.getTime();
-	var that = this;
-	
+
+	let start = nowDate.getTime();
+	let that = this;
+
+	let dealingError = function(err) {
+		// with angular, headerTostring may lead to exception.
+		try {
+			let headerStr = headerTostring(err);
+			log.runLog('error', methodName, 'Send request to service error [' + headerStr + ']');
+		} catch(e) {
+			if (err.toString) {
+				log.runLog('error', methodName, 'Send request to service error [' + err.toString() + ']');
+			}
+		}
+		log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
+		bc(err, null);
+	}
+
 	if(!this.useRawXhr){
-		var onUploadProgress = null;
-		var onDownloadProgress = null;
+		let onUploadProgress = null;
+		let onDownloadProgress = null;
 		if(isFunction(opt.ProgressCallback)){
 			let progressListener = function(event){
 				if(event.lengthComputable){
@@ -1517,16 +1569,54 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 				onUploadProgress = progressListener;
 			}
 		}
-		var portInfo = ':' + port;
+		let portInfo = ':' + port;
 		if (host.indexOf(':') >=0 ) {
 			portInfo = '';
 		}
-		var baseUrl = _isSecure ? 'https://' + this.urlPrefix + host + portInfo : 'http://' + this.urlPrefix + host + portInfo;
-		var reopt = {
+		// 适配cf2,在请求中增加通配符
+		let baseUrl='';
+		let httpPrefix = _isSecure ? 'https://' : 'http://';
+		if (this.urlPrefix && isFunction(this.setRequestHeaderHook) && methodName !== 'InitiateMultipartUpload' && methodName !== 'UploadPart' &&
+			methodName !== 'CompleteMultipartUpload') {
+			let defaultRegion = true;
+			if(opt.$requestParam['hasRegion']||opt.$requestParam['redirectRegion']){
+				defaultRegion = false;
+			}
+
+			let portFlag='';
+			if(port === 5443){
+				portFlag='-5443';
+			}
+
+			if (defaultRegion) {
+				if (opt.$requestParam['Bucket']) {
+					if(opt.$requestParam['Bucket'].indexOf('.') !== -1){
+						baseUrl = httpPrefix + this.urlPrefix + '/bucket'+ portFlag;
+					}
+					baseUrl = httpPrefix + this.urlPrefix + '/bucket'+ portFlag;
+				} else {
+					if (path.split('?')[0] === '/') {
+						baseUrl = httpPrefix + this.urlPrefix + portFlag;
+					} else {
+						baseUrl = httpPrefix + this.urlPrefix + '/place' + portFlag;
+					}
+				}
+			} else {
+				if (opt.$requestParam['Bucket']) {
+					baseUrl = httpPrefix + this.urlPrefix + '/region-bucket'+ portFlag;
+				} else {
+					baseUrl = httpPrefix + this.urlPrefix + '/region'+ portFlag;
+				}
+			}
+		} else {
+			baseUrl = httpPrefix + host + portInfo;
+		}
+
+		let reopt = {
 			method : method,
-			//fix bug, axios will abandon the base url if the request url starts with '//', so use the completed url to avoid it
+			// fix bug, axios will abandon the base url if the request url starts with '//', so use the completed url to avoid it
 			url : baseUrl + path,
-			withCredentials: false, 
+			withCredentials: false,
 			headers : ex,
 			validateStatus: function(status){
 				return status >= 200;
@@ -1545,13 +1635,13 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 			if(!(opt.srcFile instanceof window.File) && !(opt.srcFile instanceof window.Blob)){
 				return bc(new Error('source file must be an instance of window.File or window.Blob'), null);
 			}
-			
+
 			let srcFile = opt.srcFile;
 			try{
 				if(opt.Offset >= 0 && opt.PartSize > 0){
 					srcFile = this.sliceBlob(srcFile, opt.Offset, opt.Offset + opt.PartSize);
 				}else if('ContentLength' in opt){
-					let contentLength = parseInt(opt.ContentLength);
+					let contentLength = parseInt(opt.ContentLength, 10);
 					if(contentLength > 0){
 						srcFile = this.sliceBlob(srcFile, 0, contentLength);
 					}
@@ -1559,74 +1649,63 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 			}catch (e) {
 				return bc(e);
 			}
-			
+
 			reopt.data = srcFile;
-			axios.request(reopt).then(function (response) {
-				log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
-				that.getRequest(methodName, response, signatureContext, retryCount, opt.$requestParam, bc);
-			}).catch(function (err) {
-				let headerStr = headerTostring(err);
-				log.runLog('error', methodName, 'Send request to service error [' + headerStr + ']');
-				log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
-				bc(err, null);
-			});
-		}else{
-			axios.request(reopt).then(function (response) {
-				log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
-				that.getRequest(methodName, response, signatureContext, retryCount, opt.$requestParam, bc);
-			}).catch(function (err) {
-				let headerStr = headerTostring(err);
-				log.runLog('error', methodName, 'Send request to service error [' + headerStr + ']');
-				log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
-				bc(err, null);
-			});
 		}
+		axios.request(reopt).then(function (response) {
+			log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
+			that.getRequest(methodName, response, signatureContext, retryCount, opt.$requestParam, bc);
+		}).catch(function (err) {
+			dealingError(err);
+		});
 		return;
 	}
-	
-	var xhr = null;
-	//Firefox, Opera 8.0+, Safari
-	try{
-        xhr = new XMLHttpRequest();
-    }catch (e){
-        try{//InternetExplorer
-	 		xhr = new ActiveXObject("Msxml2.XMLHTTP");
-        }catch (e1){
-             try{
-                xhr = new ActiveXObject("Microsoft.XMLHTTP");
-             }catch (e2){} 
-        }
-    }
- 	
+
+	let xhr = null;
+	// Firefox, Opera 8.0+, Safari
+	try {
+		xhr = new XMLHttpRequest();
+	} catch (e) {
+		try { // InternetExplorer
+			xhr = new ActiveXObject('Msxml2.XMLHTTP');
+		} catch (e1) {
+			try {
+				xhr = new ActiveXObject('Microsoft.XMLHTTP');
+			} catch (e2) {
+			}
+		}
+	}
+
  	if(xhr === null){
  		return bc(new Error('XHR is not available'), null);
  	}
-	
+
 	if(opt.srcFile){
 		if(!(opt.srcFile instanceof window.File) && !(opt.srcFile instanceof window.Blob)){
 			return bc(new Error('source file must be an instance of window.File or window.Blob'), null);
 		}
-		
+
 		try{
 			let srcFile = opt.srcFile;
 			if(opt.Offset >= 0 && opt.PartSize > 0){
 				srcFile = this.sliceBlob(srcFile, opt.Offset, opt.Offset + opt.PartSize);
 			}else if('ContentLength' in opt){
-				let contentLength = parseInt(opt.ContentLength);
+				let contentLength = parseInt(opt.ContentLength, 10);
 				if(contentLength > 0){
 					srcFile = this.sliceBlob(srcFile, 0, contentLength);
 				}
 			}
+			body = srcFile;
 		}catch (e) {
 			return bc(e);
 		}
-		
-		body = srcFile;
 	}
 	xhr.open(method, (_isSecure ? 'https://' + this.urlPrefix + host : 'http://' + this.urlPrefix + host) + path);
 	xhr.withCredentials = false;
 	for(let key in ex){
-		xhr.setRequestHeader(key, ex[key]);
+		if ({}.hasOwnProperty.call(ex, key)) {
+			xhr.setRequestHeader(key, ex[key]);
+		}
 	}
 	xhr.timeout = that.timeout * 1000;
 	xhr.responseType = responseType;
@@ -1636,9 +1715,9 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 	xhr.onreadystatechange = function(){
 		if(xhr.readyState === 4 && xhr.status >= 200) {
 			log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
-			var headers = xhr.getAllResponseHeaders();
-		    var arr = headers.trim().split(/[\r\n]+/);
-		    var headerMap = {};
+			let headers = xhr.getAllResponseHeaders();
+		    let arr = headers.trim().split(/[\r\n]+/);
+		    let headerMap = {};
 		    for(let i=0;i<arr.length;i++){
 		    	let line = arr[i];
 		    	let parts = line.split(': ');
@@ -1646,11 +1725,11 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 			    let value = parts.join(': ');
 			    headerMap[header.toLowerCase()] = value;
 		    }
-		    var data = xhr.response;
+		    let data = xhr.response;
 		    if(!data && (responseType === '' || responseType === 'text')){
 		    	data = xhr.responseText;
 		    }
-			var response = {
+			let response = {
 				status : xhr.status,
 				headers : headerMap,
 				data : data
@@ -1658,51 +1737,48 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 			that.getRequest(methodName, response, signatureContext, retryCount, opt.$requestParam, bc);
 		}
 	};
-	
-	var handled = false;
-	var errHandler = function(err){
+
+	let handled = false;
+	let errHandler = function(err){
 		if(handled){
 			return;
 		}
 		handled = true;
-		let headerStr = headerTostring(err);
-		log.runLog('error', methodName, 'Send request to service error [' + headerStr + ']');
-		log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
-		bc(err, null);
+		dealingError(err);
 	};
-	
-	//For the compatibility with Axios
+
+	// For the compatibility with Axios
 	xhr.ontimeout = function(){
 		errHandler(new Error('timeout of ' + xhr.timeout + 'ms exceed'));
 	};
-	
-	//For the compatibility with Axios
+
+	// For the compatibility with Axios
 	xhr.onerror = function(){
 		errHandler(new Error('Network Error'));
 	};
-	
-	//For the compatibility with Axios
+
+	// For the compatibility with Axios
 	xhr.onabort = function(){
 		errHandler(new Error('Cancel'));
 	};
-	
+
 	if(xhr.upload){
-		//For the compatibility with Axios
+		// For the compatibility with Axios
 		xhr.upload.ontimeout = function(){
 			errHandler(new Error('timeout of ' + xhr.timeout + 'ms exceed'));
 		};
-		
-		//For the compatibility with Axios
+
+		// For the compatibility with Axios
 		xhr.upload.onerror = function(){
 			errHandler(new Error('Network Error'));
 		};
-		
-		//For the compatibility with Axios
+
+		// For the compatibility with Axios
 		xhr.upload.onabort = function(e){
 			errHandler(new Error('Cancel'));
 		};
 	}
-	
+
 	if(isFunction(opt.ProgressCallback)){
 		if(method === 'GET' || !xhr.upload){
 			xhr.onprogress = function(event){
@@ -1725,10 +1801,13 @@ Utils.prototype.sendRequest = function(funcName, opt, backcall, retryCount){
 	if(retryCount === undefined){
 		retryCount = 1;
 	}
-	var that = this;
+	let that = this;
 	that.makeRequest(funcName, opt, retryCount, function(err, msg){
 		if(err && err.message === 'redirect'){
-			var uri = urlLib.parse(err.location);
+			let uri = urlLib.parse(err.location);
+			if(err.bucketLocation && uri.hostname.indexOf(opt.$requestParam['Bucket']) !== -1){
+				opt.$requestParam.redirectRegion =err.bucketLocation;
+			}
 			opt.headers.Host = uri.hostname;
 			opt.protocol = uri.protocol;
 			opt.port = uri.port || ((opt.protocol && opt.protocol.toLowerCase().indexOf('https') === 0) ? 443 : 80);
@@ -1741,8 +1820,8 @@ Utils.prototype.sendRequest = function(funcName, opt, backcall, retryCount){
 
 
 Utils.prototype.doAuth = function(opt, methodName, signatureContext) {
-	var interestHeader = ['Content-MD5', 'Content-Type'];
-	var stringToSign = opt.method + '\n';
+	let interestHeader = ['Content-MD5', 'Content-Type'];
+	let stringToSign = opt.method + '\n';
 	for(let i=0;i<interestHeader.length;i++){
 		if(interestHeader[i] in opt.headers){
 			stringToSign += opt.headers[interestHeader[i]];
@@ -1753,18 +1832,18 @@ Utils.prototype.doAuth = function(opt, methodName, signatureContext) {
 		stringToSign += opt.headers.Date;
 	}
 	stringToSign += '\n';
-	
-	var temp = [];
+
+	let temp = [];
 	for(let originKey in opt.headers){
-		let lowerKey = originKey.toLowerCase();
-		if (lowerKey.indexOf(signatureContext.headerPrefix) === 0){
-			temp.push({
-				key: lowerKey,
-				value: opt.headers[originKey]
-			});
+		if ({}.hasOwnProperty.call(opt.headers, originKey)) {
+			let lowerKey = originKey.toLowerCase();
+			if (lowerKey.indexOf(signatureContext.headerPrefix) === 0) {
+				temp.push({
+					key: lowerKey,
+					value: opt.headers[originKey]
+				});
+			}
 		}
-
-
 	}
 	temp = temp.sort(function (obj1, obj2) {
 		if (obj1.key < obj2.key) {
@@ -1780,8 +1859,8 @@ Utils.prototype.doAuth = function(opt, methodName, signatureContext) {
 		let val = key.indexOf(signatureContext.headerMetaPrefix) === 0  ? temp[i].value.trim() : temp[i].value;
 		stringToSign += key + ':' + val + '\n';
 	}
-	
-	var path = opt.uri;
+
+	let path = opt.uri;
 	if(this.isCname){
 		if(path === '/'){
 			path += opt.headers.Host + '/';
@@ -1807,17 +1886,17 @@ Utils.prototype.doAuth = function(opt, methodName, signatureContext) {
 		path += urlPath;
 	}
 	stringToSign += path;
-	this.log.runLog('debug',methodName, 'stringToSign:' + stringToSign);
+	this.log.runLog('debug', methodName, 'stringToSign:' + stringToSign);
 	opt.headers.Authorization = signatureContext.authPrefix + ' ' + this.ak + ':' + crypto.createHmac('sha1', this.sk).update(stringToSign).digest('base64');
 };
 
 Utils.prototype.v4Auth = function(opt, methodName, signatureContext){
 	opt.headers[signatureContext.headerPrefix + 'content-sha256'] = CONTENT_SHA256;
-	var header = opt.headers;
-	var log = this.log;
-	var shortDate = null;
-	var longDate = null;
-	
+	let header = opt.headers;
+	let log = this.log;
+	let shortDate = null;
+	let longDate = null;
+
 	if((signatureContext.headerPrefix + 'date') in header){
 		longDate = header[signatureContext.headerPrefix + 'date'];
 		shortDate = longDate.slice(0, longDate.indexOf('T'));
@@ -1826,15 +1905,15 @@ Utils.prototype.v4Auth = function(opt, methodName, signatureContext){
 		shortDate = dates[0];
 		longDate = dates[1];
 	}
-	
-	var credenttial = this.ak + '/' + shortDate + '/' + this.region + '/s3/aws4_request';
-	
-	var signedAndCanonicalHeaders = getSignedAndCanonicalHeaders(header);
-	
-	var signedHeaders = signedAndCanonicalHeaders[0];
-	var canonicalHeaders = signedAndCanonicalHeaders[1];
-	
-	var canonicalQueryString = '';
+
+	let credenttial = this.ak + '/' + shortDate + '/' + this.region + '/s3/aws4_request';
+
+	let signedAndCanonicalHeaders = getSignedAndCanonicalHeaders(header);
+
+	let signedHeaders = signedAndCanonicalHeaders[0];
+	let canonicalHeaders = signedAndCanonicalHeaders[1];
+
+	let canonicalQueryString = '';
 	if(opt.urlPath){
 		let path = opt.urlPath.slice(1);
 		let arrPath = path.split('&');
@@ -1849,17 +1928,17 @@ Utils.prototype.v4Auth = function(opt, methodName, signatureContext){
 			}
 		}
 	}
-	var canonicalRequest = opt.method + '\n';
+	let canonicalRequest = opt.method + '\n';
 	canonicalRequest += opt.uri +  '\n';
 	canonicalRequest += canonicalQueryString + '\n';
-	canonicalRequest +=  canonicalHeaders + '\n';
+	canonicalRequest += canonicalHeaders + '\n';
 	canonicalRequest += signedHeaders + '\n';
 	canonicalRequest += CONTENT_SHA256;
-	log.runLog('debug',methodName, 'canonicalRequest:' + canonicalRequest);
-	
-	var signature = getV4Signature(shortDate, longDate, this.sk, this.region, canonicalRequest);
-	
-	opt.headers.Authorization = 'AWS4-HMAC-SHA256 ' + 'Credential=' + credenttial + ',' + 'SignedHeaders=' + signedHeaders + ',' + 'Signature=' + signature;
+	log.runLog('debug', methodName, 'canonicalRequest:' + canonicalRequest);
+
+	let signature = getV4Signature(shortDate, longDate, this.sk, this.region, canonicalRequest);
+
+	opt.headers.Authorization = 'AWS4-HMAC-SHA256 Credential=' + credenttial + ',SignedHeaders=' + signedHeaders + ',Signature=' + signature;
 };
 
 
@@ -1872,45 +1951,50 @@ Utils.prototype.rawBufMD5 = function(buf) {
 };
 
 Utils.prototype.createSignedUrlSync = function(param){
-	var signatureContext = param.signatureContext || this.signatureContext;
+	let signatureContext = param.signatureContext || this.signatureContext;
 	return signatureContext.signature.toLowerCase() === 'v4' ? this.createV4SignedUrlSync(param) : this.createV2SignedUrlSync(param);
 };
 
 Utils.prototype.createV2SignedUrlSync = function(param){
 	param = param || {};
-	var signatureContext = param.signatureContext || this.signatureContext;
-	var method = param.Method ? String(param.Method) : 'GET';
-	var bucketName = param.Bucket ? String(param.Bucket) : null;
-	var objectKey = param.Key ? String(param.Key) : null;
-	var specialParam = param.SpecialParam ? String(param.SpecialParam) : null;
+	let signatureContext = param.signatureContext || this.signatureContext;
+	let method = param.Method ? String(param.Method) : 'GET';
+	let bucketName = param.Bucket ? String(param.Bucket) : null;
+	let objectKey = param.Key ? String(param.Key) : null;
+	let specialParam = param.SpecialParam ? String(param.SpecialParam) : null;
 	if(signatureContext.signature.toLowerCase() === 'obs' && specialParam === 'storagePolicy'){
 		specialParam = 'storageClass';
 	}else if(signatureContext.signature.toLowerCase() === 'v2' && specialParam === 'storageClass'){
 		specialParam = 'storagePolicy';
 	}
-	
-	var expires = param.Expires ? parseInt(param.Expires) : 300;
-	var headers = {};
+	let policy = param.Policy ? String(param.Policy) : null;
+	let prefix = param.Prefix ? String(param.Prefix) : null;
+	let expires = param.Expires ? parseInt(param.Expires, 10) : 300;
+	let headers = {};
 	if(param.Headers && (param.Headers instanceof Object) && !(param.Headers instanceof Array)){
-		for(let key in param.Headers){
-			headers[key] = param.Headers[key];
+		for(let key in param.Headers) {
+			if ({}.hasOwnProperty.call(param.Headers, key)) {
+				headers[key] = param.Headers[key];
+			}
 		}
 	}
-	
-	var queryParams = {};
+
+	let queryParams = {};
 	if(param.QueryParams && (param.QueryParams instanceof Object) && !(param.QueryParams instanceof Array)){
 		for(let key in param.QueryParams){
-			queryParams[key] = param.QueryParams[key];
+			if ({}.hasOwnProperty.call(param.QueryParams, key)) {
+				queryParams[key] = param.QueryParams[key];
+			}
 		}
 	}
-	
+
 	if(this.securityToken && !queryParams[signatureContext.headerPrefix + 'security-token']){
 		queryParams[signatureContext.headerPrefix + 'security-token'] = this.securityToken;
 	}
-			
-	var result = '';
-	var resource = '';
-	var host = this.server;
+
+	let result = '';
+	let resource = '';
+	let host = this.server;
 	if(this.isCname){
 		resource += '/' + host + '/';
 	}else if(bucketName){
@@ -1922,7 +2006,7 @@ Utils.prototype.createV2SignedUrlSync = function(param){
 			resource += '/';
 		}
 	}
-	
+
 	if(objectKey){
 		objectKey = encodeURIWithSafe(objectKey, '/');
 		result += '/' + objectKey;
@@ -1931,51 +2015,60 @@ Utils.prototype.createV2SignedUrlSync = function(param){
 		}
 		resource += objectKey;
 	}
-	
+
 	if(resource === ''){
 		resource = '/';
 	}
-	
+
 	result += '?';
-	
+
 	if(specialParam){
 		queryParams[specialParam] = '';
 	}
-	
+
 	if(signatureContext.signature.toLowerCase() === 'v2'){
 		queryParams.AWSAccessKeyId = this.ak;
 	}else{
 		queryParams.AccessKeyId = this.ak;
 	}
-	
+
 	if(expires < 0){
 		expires = 300;
 	}
-	expires = parseInt(new Date().getTime() / 1000) + expires;
-	
-	queryParams.Expires = String(expires);
-	
-	var interestHeaders = {};
+	expires = parseInt(new Date().getTime() / 1000, 10) + expires;
+
+	if(policy && prefix) {
+		queryParams.Policy = policy;
+		queryParams.prefix = prefix;
+	} else {
+		queryParams.Expires = String(expires);
+	}
+
+	let interestHeaders = {};
 	for(let name in headers){
-		let key = String(name).toLowerCase();
-		if(key === 'content-type' || key === 'content-md5' || key.length > signatureContext.headerPrefix.length && key.slice(0,signatureContext.headerPrefix.length) === signatureContext.headerPrefix){
-			interestHeaders[key] = headers[name];
+		if ({}.hasOwnProperty.call(headers, name)) {
+			let key = String(name).toLowerCase();
+			if (key === 'content-type' || key === 'content-md5' || key.length > signatureContext.headerPrefix.length && key.slice(0, signatureContext.headerPrefix.length) === signatureContext.headerPrefix) {
+				interestHeaders[key] = headers[name];
+			}
 		}
 	}
-	
-	var queryParamsKeys = [];
+
+	let queryParamsKeys = [];
 	for(let key in queryParams){
-		queryParamsKeys.push(key);
+		if ({}.hasOwnProperty.call(queryParams, key)) {
+			queryParamsKeys.push(key);
+		}
 	}
 	queryParamsKeys.sort();
-	var index = 0;
-	var flag = false;
-	var _resource = [];
+	let flag = false;
+	let _resource = [];
+	let safeKey = policy && prefix ? '': '/';
 	for(let i=0;i<queryParamsKeys.length;i++){
 		let key = queryParamsKeys[i];
 		let val = queryParams[key];
-		key = encodeURIWithSafe(key, '/');
-		val = encodeURIWithSafe(val, '/');
+		key = encodeURIWithSafe(key, safeKey);
+		val = encodeURIWithSafe(val, safeKey);
 		result += key;
 		if(val){
 			result += '=' + val;
@@ -1986,50 +2079,58 @@ Utils.prototype.createV2SignedUrlSync = function(param){
 			_resource.push(_val);
 		}
 		result += '&';
-		index++;
 	}
 	_resource = _resource.join('&');
 	if(flag){
 		_resource = '?' + _resource;
 	}
 	resource += _resource;
-	var stringToSign = [method];
+	let stringToSign = [method];
 	stringToSign.push('\n');
-	
+
 	if('content-md5' in interestHeaders){
 		stringToSign.push(interestHeaders['content-md5']);
 	}
 	stringToSign.push('\n');
-	
+
 	if('content-type' in interestHeaders){
 		stringToSign.push(interestHeaders['content-type']);
 	}
 	stringToSign.push('\n');
-	
-	stringToSign.push(String(expires));
+	if(policy && prefix) {
+		stringToSign.push(policy);
+	} else {
+		stringToSign.push(String(expires));
+	}
+
 	stringToSign.push('\n');
-	
-	var temp = [];
-	var i = 0;
-	for(let key in interestHeaders){
-		if (key.length > signatureContext.headerPrefix.length && key.slice(0, signatureContext.headerPrefix.length) === signatureContext.headerPrefix){
-			temp[i++] = key;
+
+	if(!(policy && prefix)){
+		let temp = [];
+		let i = 0;
+		for(let key in interestHeaders){
+			if (key.length > signatureContext.headerPrefix.length && key.slice(0, signatureContext.headerPrefix.length) === signatureContext.headerPrefix){
+				temp[i++] = key;
+			}
 		}
+		temp = temp.sort();
+		for(let j=0;j<temp.length;j++){
+			stringToSign.push(temp[j]);
+			stringToSign.push(':');
+			stringToSign.push(interestHeaders[temp[j]]);
+			stringToSign.push('\n');
+		}
+
+		stringToSign.push(resource);
 	}
-	temp = temp.sort();
-	for(let j=0;j<temp.length;j++){
-		stringToSign.push(temp[j]);
-		stringToSign.push(':');
-		stringToSign.push(interestHeaders[temp[j]]);
-		stringToSign.push('\n');
-	}
-	
-	stringToSign.push(resource);
-	var hmac = crypto.createHmac('sha1', this.sk);
+	let hmac = crypto.createHmac('sha1', this.sk);
 	hmac.update(stringToSign.join(''));
-	
-	result += 'Signature=' + encodeURIWithSafe(hmac.digest('base64'), '/');
-	
+	if(policy && prefix) {
+		result += 'Signature=' + encodeURIWithSafe(hmac.digest('base64'));
+	} else {
+		result += 'Signature=' + encodeURIWithSafe(hmac.digest('base64'), '/');
+	}
+
 	return {
 		ActualSignedRequestHeaders : headers,
 		SignedUrl : (this.isSecure ? 'https' : 'http') + '://' + host + ':' + this.port + result
@@ -2038,38 +2139,42 @@ Utils.prototype.createV2SignedUrlSync = function(param){
 
 Utils.prototype.createV4SignedUrlSync = function(param){
 	param = param || {};
-	var signatureContext = param.signatureContext || this.signatureContext;
-	var method = param.Method ? String(param.Method) : 'GET';
-	var bucketName = param.Bucket ? String(param.Bucket) : null;
-	var objectKey = param.Key ? String(param.Key) : null;
-	var specialParam = param.SpecialParam ? String(param.SpecialParam) : null;
-	
+	let signatureContext = param.signatureContext || this.signatureContext;
+	let method = param.Method ? String(param.Method) : 'GET';
+	let bucketName = param.Bucket ? String(param.Bucket) : null;
+	let objectKey = param.Key ? String(param.Key) : null;
+	let specialParam = param.SpecialParam ? String(param.SpecialParam) : null;
+
 	if(specialParam === 'storageClass'){
 		specialParam = 'storagePolicy';
 	}
-	
-	var expires = param.Expires ? parseInt(param.Expires) : 300;
-	var headers = {};
+
+	let expires = param.Expires ? parseInt(param.Expires, 10) : 300;
+	let headers = {};
 	if(param.Headers && (param.Headers instanceof Object) && !(param.Headers instanceof Array)){
 		for(let key in param.Headers){
-			headers[key] = param.Headers[key];
+			if ({}.hasOwnProperty.call(param.Headers, key)) {
+				headers[key] = param.Headers[key];
+			}
 		}
 	}
-	
-	var queryParams = {};
+
+	let queryParams = {};
 	if(param.QueryParams && (param.QueryParams instanceof Object) && !(param.QueryParams instanceof Array)){
 		for(let key in param.QueryParams){
-			queryParams[key] = param.QueryParams[key];
+			if ({}.hasOwnProperty.call(param.QueryParams, key)) {
+				queryParams[key] = param.QueryParams[key];
+			}
 		}
 	}
-	
+
 	if(this.securityToken && !queryParams[signatureContext.headerPrefix + 'security-token']){
 		queryParams[signatureContext.headerPrefix + 'security-token'] = this.securityToken;
 	}
-			
-	var result = '';
-	var resource = '';
-	var host = this.server;
+
+	let result = '';
+	let resource = '';
+	let host = this.server;
 	if(bucketName){
 		if(this.pathStyle){
 			result += '/' + bucketName;
@@ -2078,137 +2183,141 @@ Utils.prototype.createV4SignedUrlSync = function(param){
 			host = bucketName + '.' + host;
 		}
 	}
-	
+
 	if(objectKey){
 		objectKey = encodeURIWithSafe(objectKey, '/');
 		result += '/' + objectKey;
 		resource += '/' + objectKey;
 	}
-	
+
 	if(resource === ''){
 		resource = '/';
 	}
-	
+
 	result += '?';
-	
+
 	if(specialParam){
 		queryParams[specialParam] = '';
 	}
-	
+
 	if(expires < 0){
 		expires = 300;
 	}
 
-	var utcDateStr = headers['date'] || headers['Date'] || new Date().toUTCString();
-	
-	var dates = getDates(utcDateStr);
-	var shortDate = dates[0];
-	var longDate = dates[1];
-	
+	let utcDateStr = headers['date'] || headers['Date'] || new Date().toUTCString();
+
+	let dates = getDates(utcDateStr);
+	let shortDate = dates[0];
+	let longDate = dates[1];
+
 	headers.Host = host + ((this.port === 80 || this.port === 443) ? '' : ':' + this.port);
-	
+
 	queryParams['X-Amz-Algorithm'] = 'AWS4-HMAC-SHA256';
 	queryParams['X-Amz-Credential'] = this.ak + '/' + shortDate + '/' + this.region + '/s3/aws4_request';
 	queryParams['X-Amz-Date'] = longDate;
 	queryParams['X-Amz-Expires'] = String(expires);
-	
-    var signedAndCanonicalHeaders = getSignedAndCanonicalHeaders(headers);
-	
+
+    let signedAndCanonicalHeaders = getSignedAndCanonicalHeaders(headers);
+
 	queryParams['X-Amz-SignedHeaders'] = signedAndCanonicalHeaders[0];
-	
-	var _queryParams = {};
-	var queryParamsKeys = [];
-	for(let key in queryParams){
-		let val = queryParams[key];
-		key = encodeURIWithSafe(key, '/');
-		val = encodeURIWithSafe(val);
-		_queryParams[key] = val;
-		queryParamsKeys.push(key);
-		result += key;
-		if(val){
-			result += '=' + val;
+
+	let _queryParams = {};
+	let queryParamsKeys = [];
+	for(let key in queryParams) {
+		if ({}.hasOwnProperty.call(queryParams, key)) {
+			let val = queryParams[key];
+			key = encodeURIWithSafe(key, '/');
+			val = encodeURIWithSafe(val);
+			_queryParams[key] = val;
+			queryParamsKeys.push(key);
+			result += key;
+			if (val) {
+				result += '=' + val;
+			}
+			result += '&';
 		}
-		result += '&';
 	}
-	
-	var canonicalQueryString = '';
-	
+
+	let canonicalQueryString = '';
+
 	queryParamsKeys.sort();
-	
+
 	for(let i=0;i<queryParamsKeys.length;){
 		canonicalQueryString += queryParamsKeys[i] + '=' + _queryParams[queryParamsKeys[i]];
 		if(++i !== queryParamsKeys.length){
 			canonicalQueryString += '&';
 		}
 	}
-	
-	var canonicalRequest = method + '\n';
+
+	let canonicalRequest = method + '\n';
 	canonicalRequest += resource +  '\n';
 	canonicalRequest += canonicalQueryString + '\n';
 	canonicalRequest += signedAndCanonicalHeaders[1] + '\n';
 	canonicalRequest += signedAndCanonicalHeaders[0] + '\n';
 	canonicalRequest += 'UNSIGNED-PAYLOAD';
-	
-	var signature = getV4Signature(shortDate, longDate, this.sk, this.region, canonicalRequest);
+
+	let signature = getV4Signature(shortDate, longDate, this.sk, this.region, canonicalRequest);
 	result += 'X-Amz-Signature=' + encodeURIWithSafe(signature);
 	return {
 		ActualSignedRequestHeaders : headers,
 		SignedUrl : (this.isSecure ? 'https' : 'http') + '://' + host + ':' + this.port + result
 	};
-			
+
 };
 
 Utils.prototype.createPostSignatureSync = function(param){
-	var signatureContext = param.signatureContext || this.signatureContext;
+	let signatureContext = param.signatureContext || this.signatureContext;
 	if(signatureContext.signature === 'v4'){
 		return this.createV4PostSignatureSync(param);
 	}
-	
+
 	param = param || {};
-	var bucketName = param.Bucket ? String(param.Bucket) : null;
-	var objectKey = param.Key ? String(param.Key) : null;
-	var expires = param.Expires ? parseInt(param.Expires) : 300;
-	var formParams = {};
-	
+	let bucketName = param.Bucket ? String(param.Bucket) : null;
+	let objectKey = param.Key ? String(param.Key) : null;
+	let expires = param.Expires ? parseInt(param.Expires, 10) : 300;
+	let formParams = {};
+
 	if(param.FormParams && (param.FormParams instanceof Object) && !(param.FormParams instanceof Array)){
 		for(let key in param.FormParams){
-			formParams[key] = param.FormParams[key];
+			if ({}.hasOwnProperty.call(param.FormParams, key)) {
+				formParams[key] = param.FormParams[key];
+			}
 		}
 	}
-	
+
 	if(this.securityToken && !formParams[signatureContext.headerPrefix + 'security-token']){
 		formParams[signatureContext.headerPrefix + 'security-token'] = this.securityToken;
 	}
-	
-	var expireDate = new Date();
-	expireDate.setTime(parseInt(new Date().getTime()) + expires * 1000);
+
+	let expireDate = new Date();
+	expireDate.setTime(parseInt(new Date().getTime(), 10) + expires * 1000);
 	expireDate = getExpireDate(expireDate.toUTCString());
-	
+
 	if(bucketName){
 		formParams.bucket = bucketName;
 	}
-	
+
 	if(objectKey){
 		formParams.key = objectKey;
 	}
-	
-	var policy = [];
+
+	let policy = [];
 	policy.push('{"expiration":"');
 	policy.push(expireDate);
 	policy.push('", "conditions":[');
-	
-	var matchAnyBucket = true;
-	var matchAnyKey = true;
-	
-	var conditionAllowKeys = ['acl', 'bucket', 'key', 'success_action_redirect', 'redirect', 'success_action_status'];
-	
+
+	let matchAnyBucket = true;
+	let matchAnyKey = true;
+
+	let conditionAllowKeys = ['acl', 'bucket', 'key', 'success_action_redirect', 'redirect', 'success_action_status'];
+
 	for(let key in formParams){
 		if(!key){
 			continue;
 		}
 		let val = formParams[key];
 		key = String(key).toLowerCase();
-		
+
 		if(key === 'bucket'){
 			matchAnyBucket = false;
 		}else if(key === 'key'){
@@ -2217,34 +2326,34 @@ Utils.prototype.createPostSignatureSync = function(param){
 		if(allowedResponseHttpHeaderMetadataNames.indexOf(key) < 0 && conditionAllowKeys.indexOf(key) < 0 && key.indexOf(signatureContext.headerPrefix) !== 0){
 			continue;
 		}
-		
+
 		policy.push('{"');
 		policy.push(key);
 		policy.push('":"');
 		policy.push(val !== null ? String(val) : '');
 		policy.push('"},');
 	}
-	
-	
+
+
 	if(matchAnyBucket){
 		policy.push('["starts-with", "$bucket", ""],');
 	}
-	
+
 	if(matchAnyKey){
 		policy.push('["starts-with", "$key", ""],');
 	}
-	
+
 	policy.push(']}');
-	
-	var originPolicy = policy.join('');
-	
+
+	let originPolicy = policy.join('');
+
 	if(window.btoa){
 		policy = window.btoa(originPolicy);
 	}else{
 		policy = Base64.encode(originPolicy);
 	}
-	var signature = crypto.createHmac('sha1', this.sk).update(policy).digest('base64');
-	
+	let signature = crypto.createHmac('sha1', this.sk).update(policy).digest('base64');
+
 	return {
 		OriginPolicy : originPolicy,
 		Policy : policy,
@@ -2255,100 +2364,102 @@ Utils.prototype.createPostSignatureSync = function(param){
 
 Utils.prototype.createV4PostSignatureSync = function(param){
 	param = param || {};
-	var signatureContext = param.signatureContext || this.signatureContext;
-	var bucketName = param.Bucket ? String(param.Bucket) : null;
-	var objectKey = param.Key ? String(param.Key) : null;
-	var expires = param.Expires ? parseInt(param.Expires) : 300;
-	var formParams = {};
-	
+	let signatureContext = param.signatureContext || this.signatureContext;
+	let bucketName = param.Bucket ? String(param.Bucket) : null;
+	let objectKey = param.Key ? String(param.Key) : null;
+	let expires = param.Expires ? parseInt(param.Expires, 10) : 300;
+	let formParams = {};
+
 	if(param.FormParams && (param.FormParams instanceof Object) && !(param.FormParams instanceof Array)){
 		for(let key in param.FormParams){
-			formParams[key] = param.FormParams[key];
+			if ({}.hasOwnProperty.call(param.FormParams, key)) {
+				formParams[key] = param.FormParams[key];
+			}
 		}
 	}
-	
+
 	if(this.securityToken && !formParams[signatureContext.headerPrefix + 'security-token']){
 		formParams[signatureContext.headerPrefix + 'security-token'] = this.securityToken;
 	}
-	
-	var utcDateStr = new Date().toUTCString();
-	var dates = getDates(utcDateStr);
-	var shortDate = dates[0];
-	var longDate = dates[1];
-	
-	var credential = this.ak + '/' + shortDate + '/' + this.region + '/s3/aws4_request';
-	
-	var expireDate = new Date();
-	expireDate.setTime(parseInt(new Date().getTime()) + expires * 1000);
-	
+
+	let utcDateStr = new Date().toUTCString();
+	let dates = getDates(utcDateStr);
+	let shortDate = dates[0];
+	let longDate = dates[1];
+
+	let credential = this.ak + '/' + shortDate + '/' + this.region + '/s3/aws4_request';
+
+	let expireDate = new Date();
+	expireDate.setTime(parseInt(new Date().getTime(), 10) + expires * 1000);
+
 	expireDate = getExpireDate(expireDate.toUTCString());
-	
+
 	formParams['X-Amz-Algorithm'] = 'AWS4-HMAC-SHA256';
 	formParams['X-Amz-Date'] = longDate;
 	formParams['X-Amz-Credential'] = credential;
-	
+
 	if(bucketName){
 		formParams.bucket = bucketName;
 	}
-	
+
 	if(objectKey){
 		formParams.key = objectKey;
 	}
-	
-	var policy = [];
+
+	let policy = [];
 	policy.push('{"expiration":"');
 	policy.push(expireDate);
 	policy.push('", "conditions":[');
-	
-	var matchAnyBucket = true;
-	var matchAnyKey = true;
-	
-	var conditionAllowKeys = ['acl', 'bucket', 'key', 'success_action_redirect', 'redirect', 'success_action_status'];
-	
+
+	let matchAnyBucket = true;
+	let matchAnyKey = true;
+
+	let conditionAllowKeys = ['acl', 'bucket', 'key', 'success_action_redirect', 'redirect', 'success_action_status'];
+
 	for(let key in formParams){
 		if(!key){
 			continue;
 		}
 		let val = formParams[key];
 		key = String(key).toLowerCase();
-		
+
 		if(key === 'bucket'){
 			matchAnyBucket = false;
 		}else if(key === 'key'){
 			matchAnyKey = false;
 		}
-		
+
 		if(allowedResponseHttpHeaderMetadataNames.indexOf(key) < 0 && conditionAllowKeys.indexOf(key) < 0 && key.indexOf(signatureContext.headerPrefix) !== 0){
 			continue;
 		}
-		
+
 		policy.push('{"');
 		policy.push(key);
 		policy.push('":"');
 		policy.push(val !== null ? String(val) : '');
 		policy.push('"},');
 	}
-	
+
 	if(matchAnyBucket){
 		policy.push('["starts-with", "$bucket", ""],');
 	}
-	
+
 	if(matchAnyKey){
 		policy.push('["starts-with", "$key", ""],');
 	}
-	
+
 	policy.push(']}');
-	
-	var originPolicy = policy.join('');
-	
+
+	let originPolicy = policy.join('');
+
 	if(window.btoa){
 		policy = window.btoa(originPolicy);
 	}else{
 		policy = Base64.encode(originPolicy);
 	}
-	
-	var signature = createV4Signature(shortDate, this.sk, this.region, policy);
-	
+
+	let signature = createV4Signature(shortDate, this.sk, this.region, policy);
+
 	return {
 		OriginPolicy : originPolicy,
 		Policy : policy,

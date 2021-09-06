@@ -14,7 +14,6 @@
  */
 
 (function (root, factory) {
-  'use strict';
   if(typeof define === 'function' && define.amd){
 	  define('ObsClient', ['utils', 'log', 'enums', 'posix', 'resumable'], factory);
   }else{
@@ -22,8 +21,6 @@
 	  root['ObsClient'] = root['obs'];
   }
 })(this ? this : window, function(Utils, LogUtil, enums, posix, resumable){
-
-'use strict';
 
 function ObsClient(param){
 	this.factory(param);
@@ -47,6 +44,9 @@ const methods = [
 	'deleteBucketPolicy',
 	'setBucketVersioningConfiguration',
 	'getBucketVersioningConfiguration',
+	'putBackToSource',
+	'deleteBackToSource',
+	'getBackToSource',
 	'getBucketLocation',
 	'listVersions',
 	'listObjects',
@@ -85,7 +85,50 @@ const methods = [
 	'deleteBucketInventory',
 	'getBucketEncryption',
 	'setBucketEncryption',
-	'deleteBucketEncryption'
+	'deleteBucketEncryption',
+	'getBucketRequesterPay',
+	'setBucketRequesterPay',
+	'setMirrorBackToSource',
+	'getMirrorBackToSource',
+	'deleteMirrorBackToSource',
+	'getWorkflowTrigger',
+	'deleteWorkflowTrigger',
+	'createWorkflowTrigger',
+	'restoreFailedWorkflowExecution',
+	'createTemplate',
+	'createWorkflow',
+	'getWorkflowList',
+	'deleteWorkflow',
+	'getWorkflowTemplateList',
+	'getWorkflowInstanceList',
+	'deleteTemplate',
+	'updateWorkflow',
+	'getActionTemplates',
+	'getWorkflowAuthorization',
+	'openWorkflowAuthorization',
+	'getBucketDirectColdAccess',
+	'setBucketDirectColdAccess',
+	'deleteBucketDirectColdAccess',
+	'getBucketCustomDomain',
+	'setBucketCustomDomain',
+	'deleteBucketCustomDomain',
+	'setBucketCors',
+	'getBucketReplication',
+	'setBucketReplication',
+	'deleteBucketReplication',
+	'getCDNNotifyConfiguration',
+	'setCdnNotifyConfiguration',
+	'getQuota',
+	'getBucketDisPolicy',
+	'setBucketDisPolicy',
+	'deleteBucketDisPolicy',
+	'createOnlineDecom',
+	'getOnlineDecom',
+	'deleteOnlineDecom',
+	'setSFSAcl',
+	'getSFSAcl',
+	'deleteSFSAcl',
+
 ];
 
 function createAction(method){
@@ -99,27 +142,76 @@ for(let i=0;i<methods.length;i++){
 	ObsClient.prototype[method] = createAction(method);
 }
 
-ObsClient.prototype.getBucketDisPolicy = function(param, callback) {
-	param.ApiPath = 'v1/dis_policies';
-	param.OEFMarker = 'yes';
-    this.exec('GetBucketDisPolicy', param, callback);
+ObsClient.prototype.createTemplate = function(param, callback) {
+	param.ApiPath = 'v2/workflowtemplates';
+    this.exec('CreateTemplate', param, callback);
 
 };
 
-ObsClient.prototype.setBucketDisPolicy = function(param, callback) {
-	param.ApiPath = 'v1/dis_policies';
-	param.OEFMarker = 'yes';
-    this.exec('SetBucketDisPolicy', param, callback);
+ObsClient.prototype.createWorkflow = function(param, callback) {
+	param.ApiPath = 'v2/workflows';
+    this.exec('CreateWorkflow', param, callback);
 
 };
 
-ObsClient.prototype.deleteBucketDisPolicy = function(param, callback) {
-	param.ApiPath = 'v1/dis_policies';
-	param.OEFMarker = 'yes';
-    this.exec('DeleteBucketDisPolicy', param, callback);
+ObsClient.prototype.restoreFailedWorkflowExecution = function(param, callback) {
+	param.ApiPath = 'v2/workflowexecutions';
+    this.exec('RestoreFailedWorkflowExecution', param, callback);
 
 };
 
+ObsClient.prototype.getWorkflowList = function(param, callback) {
+	param.ApiPath = 'v2/workflows';
+    this.exec('GetWorkflowList', param, callback);
+
+};
+
+ObsClient.prototype.deleteWorkflow = function(param, callback) {
+	param.ApiPath = 'v2/workflows';
+    this.exec('DeleteWorkflow', param, callback);
+
+};
+
+ObsClient.prototype.deleteTemplate = function(param, callback) {
+	param.ApiPath = 'v2/workflowtemplates';
+    this.exec('DeleteTemplate', param, callback);
+
+};
+
+ObsClient.prototype.getWorkflowTemplateList = function(param, callback) {
+	param.ApiPath = 'v2/workflowtemplates';
+    this.exec('GetWorkflowTemplateList', param, callback);
+
+};
+
+ObsClient.prototype.getWorkflowInstanceList = function(param, callback) {
+	param.ApiPath = 'v2/workflowexecutions';
+    this.exec('GetWorkflowInstanceList', param, callback);
+
+};
+
+ObsClient.prototype.updateWorkflow = function(param, callback) {
+	param.ApiPath = 'v2/workflows';
+    this.exec('UpdateWorkflow', param, callback);
+
+};
+
+ObsClient.prototype.getActionTemplates = function(param, callback) {
+	param.ApiPath = 'v2/actiontemplates';
+    this.exec('GetActionTemplates', param, callback);
+
+};
+
+ObsClient.prototype.getWorkflowAuthorization = function(param, callback) {
+	param.ApiPath = 'v2/workflow-authorization';
+    this.exec('GetWorkflowAuthorization', param, callback);
+
+};
+ObsClient.prototype.openWorkflowAuthorization = function(param, callback) {
+	param.ApiPath = 'v2/workflow-authorization';
+    this.exec('OpenWorkflowAuthorization', param, callback);
+
+};
 
 ObsClient.prototype.putObject = function(param, callback){
 	if(('Body' in param) && ('SourceFile' in param)){
@@ -127,18 +219,18 @@ ObsClient.prototype.putObject = function(param, callback){
 		this.log.runLog('error', 'PutObject', err);
 		return callback(new Error(err), null);
 	}
-	
+
 	if(!('ContentType' in param)){
 		if('Key' in param){
 			param.ContentType = this.util.mimeTypes[param.Key.substring(param.Key.lastIndexOf('.') + 1)];
 		}
-		
+
 		if(!param.ContentType && ('SourceFile' in param)){
 			let fileName = param.SourceFile.name;
 			param.ContentType = this.util.mimeTypes[fileName.substring(fileName.lastIndexOf('.') + 1)];
 		}
 	}
-	
+
 	this.exec('PutObject', param, callback);
 };
 
@@ -150,7 +242,7 @@ ObsClient.prototype.appendObject = function(param, callback){
 		}
 		return callback(new Error(err), null);
 	}
-	
+
 	if(!('ContentType' in param)){
 		if('Key' in param){
 			param.ContentType = this.util.mimeTypes[param.Key.substring(param.Key.lastIndexOf('.') + 1)];
@@ -159,7 +251,7 @@ ObsClient.prototype.appendObject = function(param, callback){
 			param.ContentType = this.util.mimeTypes[param.SourceFile.substring(param.SourceFile.lastIndexOf('.') + 1)];
 		}
 	}
-	
+
 	this.exec('AppendObject', param, callback);
 };
 
@@ -198,7 +290,7 @@ ObsClient.prototype.restoreObject = function(param, callback){
 		}
 		callback(err, result);
 	});
-	
+
 };
 
 ObsClient.prototype.initiateMultipartUpload = function(param, callback){
@@ -236,7 +328,7 @@ function createPromise(current){
 			current.call(this, param, callback);
 			return;
 		}
-		
+
 		let that = this;
 		return new Promise(function(resolve, reject) {
 			current.call(that, param, function(err, result){
@@ -251,28 +343,30 @@ function createPromise(current){
 
 if(isFunction(Promise)){
 	for(let key in ObsClient.prototype){
-		let current = ObsClient.prototype[key];
-		ObsClient.prototype[key] = createPromise(current);
+		if ({}.hasOwnProperty.call(ObsClient.prototype, key)){
+			let current = ObsClient.prototype[key];
+			ObsClient.prototype[key] = createPromise(current);
+		}
 	}
 }
 
 
 ObsClient.prototype.exec = function(funcName, param, callback){
-	var _log = this.log;
+	let _log = this.log;
 	_log.runLog('info', funcName, 'enter ' + funcName + '...' );
-	var start = new Date().getTime();
+	let start = new Date().getTime();
 	param = param || {};
 	callback = callback || function(){};
-	var _callback = function(err, msg){
+	let _callback = function(err, msg){
 		if(_callback.$called){
 			return;
 		}
 		_callback.$called = true;
-		
+
 		if(err && !(err instanceof Error)){
 			err = new Error(err);
 		}
-		
+
 		_log.runLog('debug', funcName, 'ObsClient cost ' +  (new Date().getTime() - start) + ' ms');
 		callback(err, msg);
 	};
@@ -282,9 +376,9 @@ ObsClient.prototype.exec = function(funcName, param, callback){
 ObsClient.prototype.initLog = function(param){
 	param = param || {};
 	this.log.setLevel(param.level);
-	var msg = ['[OBS SDK Version=' + this.util.obsSdkVersion];
+	let msg = ['[OBS SDK Version=' + this.util.obsSdkVersion];
 	if(this.util.server){
-		var port = this.util.port ? ':' + this.util.port : '';
+		let port = this.util.port ? ':' + this.util.port : '';
 		msg.push('Endpoint=' + (this.util.is_secure? 'https' : 'http') + '://' + this.util.server + port);
 	}
 	msg.push('Access Mode=' + (this.util.path_style ? 'Path' : 'Virtual Hosting') + ']');
@@ -296,7 +390,7 @@ ObsClient.prototype.factory = function(param){
 	this.util = new Utils(this.log);
 	param = param || {};
 	this.util.initFactory(param.access_key_id, param.secret_access_key, param.is_secure,
-			param.server, param.path_style, param.signature, param.region, param.port, param.timeout, param.security_token, param.is_signature_negotiation, 
+			param.server, param.path_style, param.signature, param.region, param.port, param.timeout, param.security_token, param.is_signature_negotiation,
 			param.is_cname, param.url_prefix, param.region_domains, param.setRequestHeaderHook, param.useRawXhr);
 };
 
@@ -327,13 +421,17 @@ ObsClient.prototype.createV4PostSignatureSync = function(param){
 ObsClient.prototype.enums = enums;
 
 for(let key in ObsClient.prototype){
-	ObsClient.prototype[capitalize(key)] = ObsClient.prototype[key];
+	if ({}.hasOwnProperty.call(ObsClient.prototype, key)){
+		ObsClient.prototype[capitalize(key)] = ObsClient.prototype[key];
+	}
 }
 
 for(let key in ObsClient.prototype){
-	let index = key.indexOf('Configuration');
-	if(index > 0 && index + 'Configuration'.length === key.length){
-		ObsClient.prototype[key.slice(0, index)] = ObsClient.prototype[key];
+	if ({}.hasOwnProperty.call(ObsClient.prototype, key)) {
+		let index = key.indexOf('Configuration');
+		if (index > 0 && index + 'Configuration'.length === key.length) {
+			ObsClient.prototype[key.slice(0, index)] = ObsClient.prototype[key];
+		}
 	}
 }
 

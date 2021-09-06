@@ -14,15 +14,12 @@
  */
 
 (function (root, factory) {
-  'use strict';
   if(typeof define === 'function' && define.amd){
 	  define('log', [], factory);
   }else{
 	  root['log'] = factory();
   }
 })(this ? this : window, function(){
-
-'use strict';
 
 const OFF = Number.MAX_VALUE;
 
@@ -63,7 +60,7 @@ LogUtil.prototype.runLog = function(level, methodName, msg){
 	if(!level){
 		return;
 	}
-	var form = [new Date().toLocaleString(), level.toLowerCase(), methodName, msg].join('|');
+	let form = [new Date().toLocaleString(), level.toLowerCase(), methodName, msg].join('|');
 	if(level.toLowerCase() === 'debug' && this._level <= DEBUG){
 		this.consoleLog.debug(form);
 	}else if(level.toLowerCase() === 'info' && this._level <= INFO){

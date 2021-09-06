@@ -14,15 +14,13 @@
  */
 
 (function (root, factory) {
-  'use strict';
-  if(typeof define === 'function' && define.amd){
-	  define('enums', [], factory);
-  }else{
-	  root['enums'] = factory();
-  }
+	if(typeof define === 'function' && define.amd){
+		define('enums', [], factory);
+	}else{
+		root['enums'] = factory();
+	}
 })(this ? this : window,  function () {
-	'use strict';
-	var exports = {};
+	let exports = {};
 	exports.AclPrivate = 'private';
 	exports.AclPublicRead = 'public-read';
 	exports.AclPublicReadWrite = 'public-read-write';
@@ -56,7 +54,7 @@
 
 	exports.CopyMetadata = 'COPY';
 	exports.ReplaceMetadata = 'REPLACE';
-	
+
 	exports.EventObjectCreatedAll = 'ObjectCreated:*';
 	exports.EventObjectCreatedPut = 'ObjectCreated:Put';
 	exports.EventObjectCreatedPost = 'ObjectCreated:Post';
@@ -65,6 +63,6 @@
 	exports.EventObjectRemovedAll = 'ObjectRemoved:*';
 	exports.EventObjectRemovedDelete = 'ObjectRemoved:Delete';
 	exports.EventObjectRemovedDeleteMarkerCreated = 'ObjectRemoved:DeleteMarkerCreated';
-	
+
 	return exports;
 });
