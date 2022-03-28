@@ -1,37 +1,8 @@
-Version 3.22.3
-
-New features:
-
-Documentation & Demo:
-
-Resolved issues:
-1. [Experience] Optimize the experience.
-
------------------------------------------------------------------------------------
-Version 3.21.8
-
-New features:
-
-Documentation & Demo:
-
-Resolved issues:
-1. [Function] Modified the segment thresholds for resumable download and upload.
-2. [Function] Fixed the issue where uploading and downloading objects containing highly encoded characters fails.
-3. [Function] Supported the parsing of special characters that are not supported in XML 1.0.
-
------------------------------------------------------------------------------------
-
-Version 3.20.1
+Verison 3.20.1
 
 New features:
 
 1. [Function]  Function adaptation for cross-region replications.
-
-Documentation & Demo:
-
-Resolved issues:
-
--------------------------------------------------------------------------------------
 
 Version 3.19.9
 

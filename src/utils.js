@@ -12,17 +12,15 @@
  * specific language governing permissions and limitations under the License.
  *
  */
-(function (root, factory) {
-  if(typeof define === 'function' && define.amd){
-	  define('utils', ['URI', 'axios', 'jsSHA', 'Base64', 'md5', 'xml2js', 'obsModel', 'v2Model'], factory);
-  }else{
-	  root['utils'] = factory(root['URI'], root['axios'], root['jsSHA'], root['Base64'], root['md5'], root['xml2js'], root['obsModel'], root['v2Model']);
-  }
 
-
-})
-(this ? this : window, function(URI, axios, SHA, Base64, md5, xml2js, obsModel, v2Model){
-
+import URI from 'urijs';
+import axios from 'axios';
+import SHA from 'jssha';
+import { Base64 } from 'js-base64';
+import md5 from 'blueimp-md5';
+import xml2js from './xml2js';
+import obsModel from './obsModel';
+import v2Model from './v2Model';
 
 const crypto = {
 		createHmac : function(algorithm, key){
@@ -68,17 +66,17 @@ const crypto = {
 
 					digest : function(type){
 						if(type === 'hex'){
-							return md5.MD5(this.message);
+							return md5(this.message);
 						}
 						if(type === 'base64'){
 							let encodeFunc = window.btoa ? window.btoa : Base64.encode;
-							return encodeFunc(md5.MD5(this.message, false, true));
+							return encodeFunc(md5(this.message, false, true));
 						}
 						if(type === 'rawbase64'){
 							let encodeFunc = window.btoa ? window.btoa : Base64.encode;
-							return encodeFunc(md5.RawMD5(this.message, false, true));
+							return encodeFunc(md5(this.message, false, true));
 						}
-						return md5.MD5(this.message, false, true);
+						return md5(this.message, false, true);
 					}
 				};
 			}
@@ -136,7 +134,7 @@ const urlLib = {
 };
 
 const CONTENT_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-const OBS_SDK_VERSION = '3.20.1';
+const OBS_SDK_VERSION = '3.22.3';
 
 const mimeTypes = {
     '7z' : 'application/x-7z-compressed',
@@ -296,7 +294,14 @@ const allowedResourceParameterNames = [
 	'metadata',
 	'dispolicy',
 	'obscompresspolicy',
-	'sfsacl'
+	'template_name',
+	'template_name_prefix',
+	'x-workflow-status',
+	'x-workflow-type',
+	'x-workflow-forbid',
+	'sfsacl',
+	'obsbucketalias',
+	'obsalias',
 ];
 
 
@@ -350,6 +355,7 @@ const obsAllowedEvent = ['ObjectCreated', 'ObjectRemoved', 'ObjectCreated:*', 'O
 const v2AllowedEvent = ['ObjectCreated', 'ObjectRemoved', 's3:ObjectCreated:*', 's3:ObjectCreated:Put', 's3:ObjectCreated:Post', 's3:ObjectCreated:Copy',
     's3:ObjectCreated:CompleteMultipartUpload', 's3:ObjectRemoved:*', 's3:ObjectRemoved:Delete', 's3:ObjectRemoved:DeleteMarkerCreated'];
 
+const ignoreNegotiationMethod =['CreateBucket','SetBucketAlias','BindBucketAlias','UnbindBucketAlias','DeleteBucketAlias','GetBucketAlias'];
 const negotiateMethod = 'HeadApiVersion';
 
 const obsSignatureContext = {
@@ -420,9 +426,6 @@ function isObject(obj){
 	return Object.prototype.toString.call(obj) === '[object Object]';
 }
 
-// function utcToLocaleString(utcDate){
-// 	return utcDate ? new Date(Date.parse(utcDate)).toLocaleString() : '';
-// }
 
 function makeObjFromXml(xml, bc){
 	if (typeof xml === 'object') {
@@ -876,9 +879,9 @@ Utils.prototype.doNegotiation = function(funcName, param, callback, checkBucket,
 Utils.prototype.exec = function(funcName, param, callback){
 	let that = this;
 	if(that.isSignatureNegotiation && funcName !== negotiateMethod){
-		if(funcName === 'ListBuckets'){
+		if (funcName === 'ListBuckets') {
 			that.doNegotiation(funcName, param, callback, false, false, false);
-		}else if(funcName === 'CreateBucket'){
+		} else if (ignoreNegotiationMethod.indexOf(funcName) > -1) {
 			let _callback = function(err, result){
 				if(!err && result.CommonMsg.Status === 400 &&
 						result.CommonMsg.Message === 'Unsupported Authorization Type' &&
@@ -1068,6 +1071,21 @@ Utils.prototype.makeParam = function(methodName, param){
 
 			let _value = param[key];
 
+			if (meta.type === 'callback' && _value === undefined && meta.parameters && (param['CallbackUrl'] !== undefined || param['CallbackBody'] !== undefined)) {
+				_value = {};
+				for (let _key of Object.keys(meta.parameters)) {
+					const _meta = meta.parameters[_key];
+					const _keyValue = param[_key];
+					if (_meta.required && (_keyValue === null || _keyValue === undefined || (Object.prototype.toString.call(_keyValue) === '[object String]' && _keyValue === ''))) {
+						opt.err = _key + ' is a required element!';
+						this.log.runLog('error', methodName, opt.err);
+						return opt;
+					}
+					const newKey = _key.slice(0, 1).toLowerCase() + _key.slice(1); 
+					_value[newKey] = _keyValue;
+				}
+			}
+
 			if (meta.required && (_value === null || _value === undefined || (Object.prototype.toString.call(_value) === '[object String]' && _value === ''))) {
 				opt.err = key + ' is a required element!';
 				this.log.runLog('error', methodName, opt.err);
@@ -1124,6 +1142,8 @@ Utils.prototype.makeParam = function(methodName, param){
 						exheaders[sentAs] = encodeURIWithSafe(String(_value), safe);
 					} else if (meta.type === 'boolean') {
 						exheaders[sentAs] = encodeURIWithSafe(_value ? 'true' : 'false', safe);
+					} else if (meta.type === 'callback') {
+						exheaders[sentAs] = Base64.encode(JSON.stringify(_value))
 					} else if (meta.type === 'adapter') {
 						let val = this[key + 'Adapter'](_value, signatureContext);
 						if (val) {
@@ -1329,6 +1349,12 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
 		log.runLog('debug', methodName, respMsg);
 
 		if(body && ('data' in model)){
+			if (params.CallbackUrl && model.CallbackResponse) {
+				opt.InterfaceResult[model.CallbackResponse.sentAs] = body;
+				doLog();
+				return;
+			}
+
 			if(model.data.type === 'xml'){
 				let that = this;
 				return makeObjFromXml(body, function(err, result){
@@ -2061,6 +2087,7 @@ Utils.prototype.createV2SignedUrlSync = function(param){
 		}
 	}
 	queryParamsKeys.sort();
+	let isShareFolder = policy && prefix; 
 	let flag = false;
 	let _resource = [];
 	let safeKey = policy && prefix ? '': '/';
@@ -2073,7 +2100,8 @@ Utils.prototype.createV2SignedUrlSync = function(param){
 		if(val){
 			result += '=' + val;
 		}
-		if(allowedResourceParameterNames.indexOf(key.toLowerCase())>=0 || key.toLowerCase().indexOf(signatureContext.headerPrefix) === 0){
+		// 分享文件夹不需要query信息不需要增加 policy
+		if((!isShareFolder || key.toLowerCase() !== 'policy') && (allowedResourceParameterNames.indexOf(key.toLowerCase())>=0 || key.toLowerCase().indexOf(signatureContext.headerPrefix) === 0)){
 			flag = true;
 			let _val = val ? key + '=' + decodeURIComponent(val) : key;
 			_resource.push(_val);
@@ -2097,7 +2125,7 @@ Utils.prototype.createV2SignedUrlSync = function(param){
 		stringToSign.push(interestHeaders['content-type']);
 	}
 	stringToSign.push('\n');
-	if(policy && prefix) {
+	if(isShareFolder) {
 		stringToSign.push(policy);
 	} else {
 		stringToSign.push(String(expires));
@@ -2105,7 +2133,7 @@ Utils.prototype.createV2SignedUrlSync = function(param){
 
 	stringToSign.push('\n');
 
-	if(!(policy && prefix)){
+	if(!isShareFolder){
 		let temp = [];
 		let i = 0;
 		for(let key in interestHeaders){
@@ -2122,10 +2150,12 @@ Utils.prototype.createV2SignedUrlSync = function(param){
 		}
 
 		stringToSign.push(resource);
+	}else {
+		stringToSign.push(_resource);
 	}
 	let hmac = crypto.createHmac('sha1', this.sk);
 	hmac.update(stringToSign.join(''));
-	if(policy && prefix) {
+	if(isShareFolder) {
 		result += 'Signature=' + encodeURIWithSafe(hmac.digest('base64'));
 	} else {
 		result += 'Signature=' + encodeURIWithSafe(hmac.digest('base64'), '/');
@@ -2470,7 +2500,6 @@ Utils.prototype.createV4PostSignatureSync = function(param){
 	};
 };
 
-return Utils;
+export default Utils;
 
-});
 

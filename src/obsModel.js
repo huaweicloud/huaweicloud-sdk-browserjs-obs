@@ -1,27 +1,3 @@
-/**
- * Copyright 2019 Huawei Technologies Co.,Ltd.
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License.  You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations under the License.
- *
- */
-
-(function (root, factory) {
-  if(typeof define === 'function' && define.amd){
-	  define('obsModel', [], factory);
-  }else{
-	  root['obsModel'] = factory();
-  }
-})(this ? this : window, function(){
-
-
 const owner = {
 	'type' : 'object',
 	'location' : 'xml',
@@ -611,6 +587,10 @@ const replicationRules = {
 						'StorageClass' :{
 							'sentAs' : 'StorageClass',
 							'type' : 'adapter'
+						},
+						'DeleteData' :{
+							'sentAs' : 'DeleteData',
+							'type' : 'string'
 						}
 					}
 				},
@@ -2250,6 +2230,23 @@ const operations = {
 				'sentAs' : 'meta-',
 				'withPrefix' : true,
 			},
+			'CacheControl': {
+				'location': 'header',
+				'sentAs': 'Cache-Control'
+			},
+			'ContentDisposition': {
+				'location': 'header',
+				'sentAs': 'Content-Disposition',
+				'encodingSafe': ' ;/?:@&=+$,"'
+			},
+			'ContentLanguage': {
+				'location': 'header',
+				'sentAs': 'Content-Language'
+			},
+			'ContentEncoding': {
+				'location': 'header',
+				'sentAs': 'Content-Encoding'
+			},
 			'WebsiteRedirectLocation' : {
 				'location' : 'header',
 				'sentAs' : 'website-redirect-location',
@@ -3137,7 +3134,8 @@ const operations = {
             },
             'ContentDisposition': {
                 'location': 'header',
-                'sentAs': 'Content-Disposition'
+                'sentAs': 'Content-Disposition',
+                'encodingSafe': ' ;/?:@&=+$,"'
             },
             'ContentLanguage': {
                 'location': 'header',
@@ -4064,6 +4062,22 @@ const operations = {
 					},
 				},
 			},
+			'Callback' :{
+				'location' : 'header',
+				'sentAs': 'callback',
+				'withPrefix' : true,
+				'type': 'callback',
+				'parameters': {
+					'CallbackUrl' : {
+						'required' : true,
+					},
+					'CallbackBody' : {
+						'required' : true,
+					},
+					'CallbackHost' : {},
+					'CallbackBodyType' : {},
+				}
+			},
 		},
 	},
 	'CompleteMultipartUploadOutput' : {
@@ -4124,6 +4138,10 @@ const operations = {
 				'withPrefix' : true
 			}
 		},
+		"CallbackResponse": {
+			'location': 'body',
+			'sentAs': 'CallbackResponseBody'
+		}
 	},
 	'OptionsBucket' : {
 		'httpMethod' : 'OPTIONS',
@@ -5009,8 +5027,475 @@ const operations = {
 			},
 		},
 	},
+	'GetPublicationTemplates': {
+		'httpMethod' : 'GET',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'OtherParameter': {
+				'location' : 'uri',
+				'sentAs': 'template_name_prefix'
+			},
+			'XObsCategory': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-category'
+			},
+			'XObsOtatus': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-status',
+			},
+			'XObsPrefix': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-prefix'
+			}
+		}
+	},
+	'GetPublicationTemplatesOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'PublishedTemplates' : {
+				'location' : 'body'
+			}
+		}
+	},
+	'GetPublicationTemplateDetail': {
+		'httpMethod' : 'GET',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'OtherParameter': {
+				'location' : 'uri',
+				'sentAs': 'template_name'
+			}
+		}
+	},
+	'GetPublicationTemplateDetailOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'PublishTemplate' : {
+				'location' : 'body'
+			}
+		}
+	},
+	'GetWorkflowAgreements': {
+		'httpMethod' : 'GET',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'XWorkflowType' : {
+				'required' : true,
+				'location' : 'urlPath',
+				'sentAs': 'x-workflow-type'
+			}
+		}
+
+	},
+	'GetWorkflowAgreementsOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'authorization' : {
+				'location' : 'body'
+			}
+		}
+	},
+	'OpenWorkflowAgreements': {
+		'httpMethod' : 'POST',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'XWorkflowType' : {
+				'required' : true,
+				'location' : 'urlPath',
+				'sentAs': 'x-workflow-type'
+			}
+		}
+	},
+	'CreateMyActionTemplate' : {
+		'httpMethod' : 'POST',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'OtherParameter': {
+				'location' : 'uri',
+				'sentAs': 'template_name'
+			},
+			'ActionTemplate' : {
+				'required' : true,
+				'location' : 'body',
+			}
+		}
+	},
+	'CreateMyActionTemplateOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'ActionTemplate' : {
+				'location' : 'body'
+			}
+		}
+	},
+	'GetMyActionTemplates': {
+		'httpMethod' : 'GET',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'OtherParameter': {
+				'location' : 'uri',
+				'sentAs': 'template_name_prefix'
+			},
+			'XObsCategory': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-category'
+			},
+			'XObsOtatus': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-status',
+			},
+			'XObsPrefix': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-prefix'
+			}
+		}
+	},
+	'GetMyActionTemplatesOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'ActionTemplates' : {
+				'location' : 'body'
+			}
+		}
+	},
+	'GetMyactiontemplateDetail': {
+		'httpMethod' : 'GET',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'OtherParameter': {
+				'location' : 'uri',
+				'sentAs': 'template_name'
+			}
+		}
+	},
+	'GetMyactiontemplateDetailOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'ActionTemplate' : {
+				'location' : 'body'
+			}
+		}
+	},
+	'UpdateMyActionTemplate': {
+		'httpMethod' : 'PUT',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'OtherParameter': {
+				'location' : 'uri',
+				'sentAs': 'template_name'
+			},
+			'ActionTemplate' : {
+				'required' : true,
+				'location' : 'body',
+			}
+		}
+	},
+	'UpdateMyActionTemplateOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'ActionTemplate' : {
+				'location' : 'body'
+			}
+		}
+	},
+	'DeleteMyActionTemplate': {
+		'httpMethod' : 'DELETE',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'OtherParameter': {
+				'location' : 'uri',
+				'sentAs': 'template_name'
+			}
+		}
+	},
+	'ForbidMyActionTemplate': {
+		'httpMethod' : 'DELETE',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'OtherParameter': {
+				'location' : 'uri',
+				'sentAs': 'template_name'
+			},
+			'XObsForbid': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-forbid'
+			}
+		}
+	},
+	'UpdatePublicActionTemplate': {
+		'httpMethod' : 'PUT',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'OtherParameter': {
+				'location' : 'uri',
+				'sentAs': 'template_name'
+			},
+			'PublicAction' : {
+				'required' : true,
+				'location' : 'body',
+			}
+		}
+	},
+	'GetOmPublicActionTemplates': {
+		'httpMethod' : 'GET',
+		'parameters' : {
+			'ApiPath': {
+				'location': 'uri'
+			},
+			'OtherParameter': {
+				'location' : 'uri',
+				'sentAs': 'template_name_prefix'
+			},
+			'XObsCategory': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-category'
+			},
+			'XObsOtatus': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-status',
+			},
+			'XObsPrefix': {
+				'location' : 'urlPath',
+				'sentAs' : 'x-workflow-prefix'
+			}
+		}
+	},
+	'GetOmPublicActionTemplatesOutput': {
+		'data' : {
+			'type' : 'body'
+		},
+		'parameters' : {
+			'Templates' : {
+				'location' : 'body'
+			}
+		}
+	},
+	
+	'SetBucketAlias': {
+		'httpMethod': 'PUT',
+		'urlPath' : 'obsbucketalias',
+		'data': {
+			'xmlRoot': 'CreateBucketAlias'
+		},
+		'parameters': {
+			'Bucket': {
+				'required': true,
+				'location': 'uri'
+			},
+			'BucketList': {
+				'location': 'xml',
+				'type': 'object',
+				'sentAs': 'BucketList',
+				'parameters': {
+					'Bucket': {
+						'location': 'xml',
+						'type': 'array',
+						'items': {
+							'parameters': {
+								'sentAs': 'Bucket'
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+ 
+	'GetBucketAlias' : {
+		'httpMethod' : 'GET',
+		'urlPath' : 'obsalias',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			}
+		}
+	},
+ 
+	'GetBucketAliasOutput' : {
+		'data': {
+			'type': 'xml',
+			'xmlRoot': 'AliasList'
+		},
+		'parameters': {
+			'BucketAlias': {
+				'location': 'xml',
+				'type': "object",
+				'sentAs': 'BucketAlias',
+				'parameters': {
+					'Alias': {
+						'sentAs': 'Alias',
+					},
+					'BucketList': {
+						'sentAs': 'Bucket',
+						'location': 'xml',
+						'type': 'array',
+						'wrapper': 'BucketList',
+						'items': {
+							'type': 'string',
+						}
+					}
+				},
+			}
+		}
+	},
+ 
+	'DeleteBucketAlias' : {
+		'httpMethod' : 'DELETE',
+		'urlPath' : 'obsbucketalias',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			}
+		}
+	},
+ 
+	'BindBucketAlias': {
+		'httpMethod': 'PUT',
+		'urlPath': 'obsalias',
+		'data': {
+			'xmlRoot': 'AliasList'
+		},
+		'parameters': {
+			'Bucket': {
+				'required': true,
+				'location': 'uri'
+			},
+			'Alias': {
+				'location' : 'xml',
+				'type' : 'string',
+				'sentAs': 'Alias',
+			},
+		}
+	},
+ 
+	'BindBucketAliasOutput': {
+		'data': {
+			'xmlRoot': 'AliasList'
+		},
+		'parameters': {
+			'Bucket': {
+				'required': true,
+				'location': 'uri'
+			},
+			'Alias': {
+				'location' : 'xml',
+				'type' : 'string',
+				'sentAs': 'Alias',
+			},
+		}
+	},
+	
+	'UnbindBucketAlias' : {
+		'httpMethod' : 'DELETE',
+		'urlPath' : 'obsalias',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri'
+			},
+		}
+	},
+ 
+	'ListBucketsAlias': {
+		'httpMethod': 'GET',
+		'urlPath': 'obsbucketalias',
+	},
+ 
+	'ListBucketsAliasOutput': {
+		'data': {
+			'type': 'xml',
+			'xmlRoot': 'ListBucketAliasResult'
+		},
+		'parameters': {
+			'BucketAliasList': {
+				'location': 'xml',
+				'sentAs': 'BucketAliasList',
+				'type': 'object',
+				'parameters': {
+					'BucketAlias': {
+						'location': 'xml',
+						'type': 'array',
+						'sentAs': 'BucketAlias',
+						'items': {
+							'type': 'object',
+							'parameters': {
+								'Alias': {
+									'sentAs': 'Alias',
+								},
+								'CreationDate': {
+									'sentAs': 'CreationDate',
+								},
+								'BucketList': {
+									'location': 'xml',
+									'type': 'object',
+									'sentAs': 'BucketList',
+									'parameters': {
+										'Bucket': {
+											'location': 'xml',
+											'type': 'array',
+											'items': {
+												'parameters': {
+													'sentAs': 'Bucket'
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}, 
+			'Owner': {
+				'location': 'xml',
+				'sentAs': 'Owner',
+				'type': 'object',
+				'parameters': {
+					'ID': {
+						'sentAs': 'ID',
+					}
+				}
+			}
+		}
+	},
 };
 
-return operations;
-
-});
+export default operations;

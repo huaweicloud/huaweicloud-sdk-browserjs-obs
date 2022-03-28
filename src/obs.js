@@ -1,26 +1,8 @@
-﻿/**
- * Copyright 2019 Huawei Technologies Co.,Ltd.
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
- * this file except in compliance with the License.  You may obtain a copy of the
- * License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations under the License.
- *
- */
-
-(function (root, factory) {
-  if(typeof define === 'function' && define.amd){
-	  define('ObsClient', ['utils', 'log', 'enums', 'posix', 'resumable'], factory);
-  }else{
-	  root['obs'] = factory(root['utils'], root['log'], root['enums'], root['posix'], root['resumable']);
-	  root['ObsClient'] = root['obs'];
-  }
-})(this ? this : window, function(Utils, LogUtil, enums, posix, resumable){
+﻿import Utils from './utils';
+import LogUtil from './log';
+import * as enums from './enums';
+import posix from './posix';
+import resumable from './resumable';
 
 function ObsClient(param){
 	this.factory(param);
@@ -124,10 +106,26 @@ const methods = [
 	'deleteBucketDisPolicy',
 	'createOnlineDecom',
 	'getOnlineDecom',
+	'getWorkflowAgreements',
+	'openWorkflowAgreements',
 	'deleteOnlineDecom',
+	'getMyActionTemplates',
+	'createMyActionTemplate',
+	'getMyactiontemplateDetail',
+	'updateMyActionTemplate',
+	'deleteMyActionTemplate',
+	'forbidMyActionTemplate',
+	'updatePublicActionTemplate',
+	'getOmPublicActionTemplates',
 	'setSFSAcl',
 	'getSFSAcl',
 	'deleteSFSAcl',
+	'setBucketAlias',
+	'bindBucketAlias',
+	'unbindBucketAlias',
+	'deleteBucketAlias',
+	'listBucketsAlias',
+	'getBucketAlias',
 
 ];
 
@@ -211,6 +209,89 @@ ObsClient.prototype.openWorkflowAuthorization = function(param, callback) {
 	param.ApiPath = 'v2/workflow-authorization';
     this.exec('OpenWorkflowAuthorization', param, callback);
 
+};
+
+ObsClient.prototype.getPublicationTemplates = function(param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = 'v2/publicactiontemplates';
+	this.exec('GetPublicationTemplates', param, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.getPublicationTemplateDetail = function(param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = 'v2/publicactiontemplates'; 
+	this.exec('GetPublicationTemplateDetail', param, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.getWorkflowAgreements = function(param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = 'v2/workflow-agreements';
+	this.exec('GetWorkflowAgreements', param, callback);
+	this.util.pathStyle = false;
+};
+ObsClient.prototype.openWorkflowAgreements = function(param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = 'v2/workflow-agreements';
+	this.exec('OpenWorkflowAgreements', param, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.createMyActionTemplate = function(param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = 'v2/myactiontemplates';
+	this.exec('CreateMyActionTemplate', param, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.getMyActionTemplates = function(param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = 'v2/myactiontemplates';
+	this.exec('GetMyActionTemplates', param, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.getMyactiontemplateDetail = function(param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = 'v2/myactiontemplates';
+	this.exec('GetMyactiontemplateDetail', param, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.updateMyActionTemplate = function(param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = 'v2/myactiontemplates';
+	this.exec('UpdateMyActionTemplate', param, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.deleteMyActionTemplate = function(param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = 'v2/myactiontemplates';
+	this.exec('DeleteMyActionTemplate', param, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.forbidMyActionTemplate = function(param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = 'v2/myactiontemplates';
+	this.exec('ForbidMyActionTemplate', param, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.updatePublicActionTemplate = function(param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = 'v2/ompublicactiontemplates';
+	this.exec('UpdatePublicActionTemplate', param, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.getOmPublicActionTemplates = function(param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = 'v2/ompublicactiontemplates';
+	this.exec('GetOmPublicActionTemplates', param, callback);
+	this.util.pathStyle = false;
 };
 
 ObsClient.prototype.putObject = function(param, callback){
@@ -435,6 +516,4 @@ for(let key in ObsClient.prototype){
 	}
 }
 
-return ObsClient;
-});
-
+export default ObsClient;
