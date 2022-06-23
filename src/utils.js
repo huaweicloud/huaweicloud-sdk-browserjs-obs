@@ -22,6 +22,8 @@ import xml2js from './xml2js';
 import obsModel from './obsModel';
 import v2Model from './v2Model';
 
+const http = axios.create()
+
 const crypto = {
 		createHmac : function(algorithm, key){
 			let algorithmKey;
@@ -1081,7 +1083,7 @@ Utils.prototype.makeParam = function(methodName, param){
 						this.log.runLog('error', methodName, opt.err);
 						return opt;
 					}
-					const newKey = _key.slice(0, 1).toLowerCase() + _key.slice(1); 
+					const newKey = _key.slice(0, 1).toLowerCase() + _key.slice(1);
 					_value[newKey] = _keyValue;
 				}
 			}
@@ -1638,7 +1640,7 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 			baseUrl = httpPrefix + host + portInfo;
 		}
 
-		let reopt = {
+		const requestConfig = {
 			method : method,
 			// fix bug, axios will abandon the base url if the request url starts with '//', so use the completed url to avoid it
 			url : baseUrl + path,
@@ -1676,9 +1678,9 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 				return bc(e);
 			}
 
-			reopt.data = srcFile;
+			requestConfig.data = srcFile;
 		}
-		axios.request(reopt).then(function (response) {
+		http.request(requestConfig).then(function (response) {
 			log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
 			that.getRequest(methodName, response, signatureContext, retryCount, opt.$requestParam, bc);
 		}).catch(function (err) {
@@ -2087,7 +2089,7 @@ Utils.prototype.createV2SignedUrlSync = function(param){
 		}
 	}
 	queryParamsKeys.sort();
-	let isShareFolder = policy && prefix; 
+	let isShareFolder = policy && prefix;
 	let flag = false;
 	let _resource = [];
 	let safeKey = policy && prefix ? '': '/';
