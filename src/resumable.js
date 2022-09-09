@@ -42,10 +42,6 @@ let isBinary = function(obj){
 	return isFile || isBlob
 };
 
-let isFile = function(obj){
-	return Object.prototype.toString.call(obj) === '[object File]';
-};
-
 let wrapEventCallback = function(eventCallback){
 	eventCallback = eventCallback || function(){};
 	return function(t, eventParam, result){
