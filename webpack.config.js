@@ -1,4 +1,6 @@
+const FileManagerPlugin = require ('filemanager-webpack-plugin');
 const { readFileSync } = require('fs');
+const { version: _version, zipPackageName = 'huaweicloud-obs-sdk-browserjs', isRelease = 'false', cidBuildTime = Date.now() } = process.env
 
 let version;
 let name = 'esdk-obs-browserjs';
@@ -10,6 +12,17 @@ try {
 } catch (error) {
   console.log('missing file: package.json')
 }
+
+version = _version ? _version : version;
+
+let zipFileName = zipPackageName;
+if (version) {
+  zipFileName += `_${version}`;
+}
+if (isRelease.toLowerCase() === 'false') {
+  zipFileName += `-${cidBuildTime}`;
+}
+zipFileName += '.tar.gz';
 
 module.exports = {
   mode: "production",
@@ -33,5 +46,26 @@ module.exports = {
         use: ["babel-loader?cacheDirectory=true"],
       },
     ],
-  }
+  },
+  plugins: [
+    new FileManagerPlugin({
+      events: {
+        onEnd: {
+          archive: [
+            { 
+              source: '../source',
+              destination: `${zipFileName}`,
+              format: 'tar',
+              options: {
+                globOptions: {
+                  dot: true,
+                  ignore: ['package-lock.json', 'node_modules', 'node_modules/**/*']
+                }
+              }
+            },
+          ],
+        },
+      },
+    }),
+  ]
 };

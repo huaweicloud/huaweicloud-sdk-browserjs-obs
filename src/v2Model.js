@@ -13,6 +13,23 @@
  *
  */
 
+import {
+	CDNNotifyConfiguration, 
+	ObjectEncryptionRule, 
+	CreateAuditPolicy,
+	CreateAuditPolicyOutput,
+	GetAuditPolicy,
+	GetAuditPolicyOutput,
+	PutAuditPolicy,
+	PutAuditPolicyOutPut,
+	DeleteAuditPolicy,
+	GetAuditResult,
+	GetAuditResultOutput,
+	lifecycleRule,
+	ObjectLock,
+} from './sharedModel';
+
+
 const owner = {
 	'type' : 'object',
 	'location' : 'xml',
@@ -44,6 +61,9 @@ const bucketEncryptionRule = {
 				},
 				'ProjectID': {
 					'sentAs': 'ProjectID'
+				},
+				'KMSDataEncryption': {
+					'sentAs': 'KMSDataEncryption'
 				}
 			}
 		}
@@ -337,97 +357,6 @@ const loggingEnabled = {
 				},
 			},
 		},
-};
-
-const rules = {
-	'required' : true,
-	'type' : 'array',
-	'location' : 'xml',
-	'sentAs' : 'Rule',
-	'items' : {
-		'type' : 'object',
-		'parameters' : {
-			'ID' : {
-				'sentAs' : 'ID',
-			},
-			'Prefix' : {
-				'sentAs' : 'Prefix',
-			},
-			'Status' : {
-				'sentAs' : 'Status',
-			},
-			'Transitions' : {
-				'type' : 'array',
-				'sentAs' : 'Transition',
-				'items' : {
-					'type' : 'object',
-					'parameters' : {
-						'StorageClass' :{
-							'sentAs' : 'StorageClass',
-							'type' : 'adapter'
-						},
-						'Date' : {
-							'sentAs' : 'Date',
-						},
-						'Days' : {
-							'type' : 'number',
-							'sentAs' : 'Days'
-						}
-					}
-				}
-			},
-			'Expiration' : {
-				'type' : 'object',
-				'sentAs' : 'Expiration',
-				'parameters' : {
-					'Date' : {
-						'sentAs' : 'Date',
-					},
-					'Days' : {
-						'type' : 'number',
-						'sentAs' : 'Days',
-					},
-				},
-			},
-            'AbortIncompleteMultipartUpload' : {
-                'type' : 'object',
-                'sentAs' : 'AbortIncompleteMultipartUpload',
-                'parameters' : {
-                    'DaysAfterInitiation' : {
-                        'type' : 'number',
-                        'sentAs' : 'DaysAfterInitiation',
-                    },
-                },
-            },
-			'NoncurrentVersionTransitions' :{
-				'type' : 'array',
-				'sentAs' : 'NoncurrentVersionTransition',
-				'items' : {
-					'type' : 'object',
-					'parameters' : {
-						'StorageClass' :{
-							'sentAs' : 'StorageClass',
-							'type' : 'adapter'
-						},
-						'NoncurrentDays' : {
-							'type' : 'number',
-							'sentAs' : 'NoncurrentDays'
-						}
-					}
-				}
-			},
-			'NoncurrentVersionExpiration' : {
-				'type' : 'object',
-				'sentAs' : 'NoncurrentVersionExpiration',
-				'parameters' : {
-					'NoncurrentDays' : {
-						'type' : 'number',
-						'sentAs' : 'NoncurrentDays',
-					},
-				},
-			}
-		},
-	},
 };
 
 const redirectAllRequestsTo = {
@@ -737,28 +666,6 @@ const replicationRules = {
 			},
 		}
 	};
-	const CDNNotifyConfiguration = {
-		'location': 'xml',
-		'sentAs': 'Domain',
-		'type': 'array',
-		'items': {
-			'type': 'object',
-			'parameters': {
-				'Name': {
-					'type': 'string',
-					'sentAs': 'Name'
-				},
-				'Event': {
-					'type': 'array',
-					'items': {
-						'type': 'adapter',
-					},
-					'sentAs': 'Event'
-
-				}
-			}
-		}
-	};
 
 const operations = {
 
@@ -809,6 +716,16 @@ const operations = {
 			'StorageType':{
 				'location' : 'header',
 				'sentAs' : 'x-default-storage-class'
+			},			
+			'IESLocation':{
+				'location' : 'header',
+				'sentAs' : 'ies-location',
+				'withPrefix': true
+			},
+			'ObjectLockEnabeld': {
+				'location' : 'header',
+				'sentAs' : 'bucket-object-lock-enabled',
+				'withPrefix': true
 			},
 			'FileInterface':{
 				'location' : 'header',
@@ -823,6 +740,21 @@ const operations = {
 			'MultiAz':{
 				'location' : 'header',
 				'sentAs' : 'x-obs-az-redundancy'
+			},
+			'Redundancy':{
+				'location' : 'header',
+				'sentAs' : 'bucket-redundancy',
+				'withPrefix': true
+			},
+			'IsFusionAllowUpgrade':{
+				'location' : 'header',
+				'sentAs' : 'fusion-allow-upgrade',
+				'withPrefix': true
+			},
+			'IsFusionAllowAlternative':{
+				'location' : 'header',
+				'sentAs' : 'fusion-allow-alternative',
+				'withPrefix': true
 			},
 			'Cluster': {
 				'location' : 'header',
@@ -915,6 +847,11 @@ const operations = {
 				"location": 'header',
 				'sentAs': 'x-obs-az-redundancy'
 			},
+			'Redundancy':{
+				'location' : 'header',
+				'sentAs' : 'bucket-redundancy',
+				'withPrefix': true
+			},
 			'MultiEnterprise': {
 				'location': 'header',
 				'sentAs': 'epid',
@@ -928,6 +865,11 @@ const operations = {
 			'Cluster': {
 				'location' : 'header',
 				'sentAs' : 'location-clustergroup-id',
+				'withPrefix': true
+			},
+			'IESLocation': {
+				'location': 'header',
+				'sentAs': 'ies-location',
 				'withPrefix': true
 			},
 			'AllowOrigin' : {
@@ -1004,6 +946,9 @@ const operations = {
 						},
 						ClusterType: {
 							sentAs: "ClusterType"
+						},
+						IESLocation: {
+							sentAs: "IESLocation"
 						}
 					}
 				}
@@ -1391,9 +1336,49 @@ const operations = {
 				'location' : 'xml',
 				'sentAs' : 'ObjectNumber',
 			},
+			'StandardSize' : {
+				'location' : 'xml',
+				'sentAs' : 'StandardSize',
+			},
+			'StandardObjectNumber' : {
+				'location' : 'xml',
+				'sentAs' : 'StandardObjectNumber',
+			},
+			'Standard_IASize' : {
+				'location' : 'xml',
+				'sentAs' : 'Standard_IASize',
+			},
+			'Standard_IAObjectNumber' : {
+				'location' : 'xml',
+				'sentAs' : 'Standard_IAObjectNumber',
+			},
+            'GlacierSize' : {
+				'location' : 'xml',
+				'sentAs' : 'GlacierSize',
+			},
+			'GlacierObjectNumber' : {
+				'location' : 'xml',
+				'sentAs' : 'GlacierObjectNumber',
+			},
+			'DeepArchiveSize' : {
+				'location' : 'xml',
+				'sentAs' : 'DeepArchiveSize',
+			},
+			'DeepArchiveObjectNumber' : {
+				'location' : 'xml',
+				'sentAs' : 'DeepArchiveObjectNumber',
+			},
+            'HighPerformanceSize' : {
+				'location' : 'xml',
+				'sentAs' : 'HighPerformanceSize',
+			},
+			'HighPerformanceObjectNumber' : {
+				'location' : 'xml',
+				'sentAs' : 'HighPerformanceObjectNumber',
+			},
 		},
 	},
-
+ 
 	'SetBucketQuota' : {
 		'httpMethod' : 'PUT',
 		'urlPath' : 'quota',
@@ -1682,7 +1667,7 @@ const operations = {
 				'required' : true,
 				'location' : 'uri',
 			},
-			'Rules' : rules
+			'Rules' : lifecycleRule
 		},
 	},
 
@@ -1702,7 +1687,7 @@ const operations = {
 			'xmlRoot' : 'LifecycleConfiguration',
 		},
 		'parameters' : {
-			'Rules' : rules
+			'Rules' : lifecycleRule
 		},
 	},
 	'DeleteBucketLifecycleConfiguration' : {
@@ -1899,6 +1884,41 @@ const operations = {
 			'FunctionStageConfigurations': functionStageConfiguration
 		},
 	},
+	'GetBucketObjectLockConfiguration': {
+		'httpMethod' : 'GET',
+		'urlPath' : 'object-lock',
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri',
+			},
+		}
+	},
+	'GetBucketObjectLockConfigurationOutput' : {
+		'data' : {
+			'type' : 'xml',
+			'xmlRoot' : 'ObjectLockConfiguration',
+		},
+		'parameters' : {
+			'Rule' : ObjectLock
+		}
+	},
+	'SetBucketObjectLockConfig' : {
+		'httpMethod' : 'PUT',
+		'urlPath': 'object-lock',
+		'data' : {
+			'type' : 'xml',
+			'xmlAllowEmpty' : true,
+			'xmlRoot' : 'ObjectLockConfiguration',
+		},
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri',
+			},
+			'Rule' : ObjectLock
+		}
+	},
 
 	'SetBucketTagging' : {
 		'httpMethod' : 'PUT',
@@ -2066,6 +2086,11 @@ const operations = {
 				'location' : 'header',
 				'sentAs' : 'Content-MD5',
 			},
+			'ContentSHA256' : {
+				'location' : 'header',
+				'sentAs' : 'content-sha256',
+				'withPrefix' : true
+			},
 			'ContentType' : {
 				'location' : 'header',
 				'sentAs' : 'Content-Type'
@@ -2143,33 +2168,7 @@ const operations = {
 				'sentAs' : 'x-obs-expires',
 				'type' : 'number'
 			},
-			'SseKms' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption',
-				'withPrefix' : true,
-				'type' : 'adapter'
-			},
-			'SseKmsKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-aws-kms-key-id',
-				'withPrefix' : true,
-			},
-			'SseKmsProjectId' :{
-				'location' : 'header',
-				'sentAs' : 'sse-kms-key-project-id',
-				'withPrefix' : true,
-			},
-			'SseC' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-algorithm',
-				'withPrefix' : true
-			},
-			'SseCKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-key',
-				'type' : 'password',
-				'withPrefix' : true
-			},
+			...ObjectEncryptionRule,
 			'Body' : {
 				'location' : 'body',
 			},
@@ -2197,31 +2196,7 @@ const operations = {
 				'sentAs' : 'storage-class',
 				'withPrefix' : true,
 			},
-			'SseKms' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption',
-				'withPrefix' : true,
-			},
-			'SseKmsKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-aws-kms-key-id',
-				'withPrefix' : true,
-			},
-			'SseKmsProjectId' :{
-				'location' : 'header',
-				'sentAs' : 'sse-kms-key-project-id',
-    'withPrefix' : true,
-			},
-			'SseC' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-algorithm',
-				'withPrefix' : true,
-			},
-			'SseCKeyMd5' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-key-MD5',
-				'withPrefix' : true,
-			}
+			...ObjectEncryptionRule,
 		},
 	},
 
@@ -2307,28 +2282,7 @@ const operations = {
 				'sentAs' : 'x-obs-expires',
 				'type' : 'number'
 			},
-			'SseKms' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption',
-				'withPrefix' : true,
-				'type' : 'adapter'
-			},
-			'SseKmsKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-kms-key-id',
-				'withPrefix' : true,
-			},
-			'SseC' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-algorithm',
-				'withPrefix' : true,
-			},
-			'SseCKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-key',
-				'type' : 'password',
-				'withPrefix' : true,
-			},
+			...ObjectEncryptionRule,
 			'Body' : {
 				'location' : 'body',
 			},
@@ -2355,26 +2309,7 @@ const operations = {
 				'sentAs' : 'storage-class',
 				'withPrefix' : true,
 			},
-			'SseKms' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption',
-				'withPrefix' : true
-			},
-			'SseKmsKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-kms-key-id',
-				'withPrefix' : true,
-			},
-			'SseC' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-algorithm',
-				'withPrefix' : true,
-			},
-			'SseCKeyMd5' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-key-MD5',
-				'withPrefix' : true,
-			}
+			...ObjectEncryptionRule,
 		},
 	},
 
@@ -2562,26 +2497,7 @@ const operations = {
 				'location' : 'header',
 				'sentAs' : 'access-control-allow-headers'
 			},
-			'SseKms' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption',
-				'withPrefix' : true
-			},
-			'SseKmsKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-aws-kms-key-id',
-				'withPrefix' : true
-			},
-			'SseC' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-algorithm',
-				'withPrefix' : true
-			},
-			'SseCKeyMd5' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-key-MD5',
-				'withPrefix' : true
-			},
+			...ObjectEncryptionRule,
 			'Metadata' : {
 				'location' : 'header',
 				'type' : 'object',
@@ -2702,28 +2618,7 @@ const operations = {
 				'sentAs' : 'website-redirect-location',
 				'withPrefix' : true
 			},
-			'SseKms' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption',
-				'withPrefix' : true,
-				'type' : 'adapter'
-			},
-			'SseKmsKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-aws-kms-key-id',
-				'withPrefix' : true
-			},
-			'SseC' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-algorithm',
-				'withPrefix' : true
-			},
-			'SseCKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-key',
-				'type' : 'password',
-				'withPrefix' : true
-			},
+			...ObjectEncryptionRule,
 			'CopySourceSseC' :{
 				'location' : 'header',
 				'sentAs' : 'copy-source-server-side-encryption-customer-algorithm',
@@ -2761,26 +2656,7 @@ const operations = {
 				'location' : 'xml',
 				'sentAs' : 'LastModified',
 			},
-			'SseKms' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption',
-				'withPrefix' : true
-			},
-			'SseKmsKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-aws-kms-key-id',
-				'withPrefix' : true
-			},
-			'SseC' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-algorithm',
-				'withPrefix' : true
-			},
-			'SseCKeyMd5' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-key-MD5',
-				'withPrefix' : true
-			}
+			...ObjectEncryptionRule,
 		},
 	},
 
@@ -2854,6 +2730,16 @@ const operations = {
     },
     'GetObjectMetadataOutput': {
         'parameters': {
+			'ObjectLockMode': {
+				'location': 'header',
+                'sentAs': 'object-lock-mode',
+                'withPrefix': true
+			},
+			'ObjectLockRetainUntilDate': {
+				'location': 'header',
+                'sentAs': 'object-lock-retain-until-date',
+                'withPrefix': true
+			},
             'Expiration': {
                 'location': 'header',
                 'sentAs': 'expiration',
@@ -2924,26 +2810,7 @@ const operations = {
                 'location': 'header',
                 'sentAs': 'access-control-allow-headers'
             },
-            'SseKms': {
-                'location': 'header',
-                'sentAs': 'server-side-encryption',
-                'withPrefix': true
-            },
-            'SseKmsKey': {
-                'location': 'header',
-                'sentAs': 'server-side-encryption-aws-kms-key-id',
-                'withPrefix': true
-            },
-            'SseC': {
-                'location': 'header',
-                'sentAs': 'server-side-encryption-customer-algorithm',
-                'withPrefix': true
-            },
-            'SseCKeyMd5': {
-                'location': 'header',
-                'sentAs': 'server-side-encryption-customer-key-MD5',
-                'withPrefix': true
-            },
+            ...ObjectEncryptionRule,
             'Metadata': {
                 'location': 'header',
                 'type': 'object',
@@ -3135,6 +3002,35 @@ const operations = {
 			},
 		},
 	},
+	'SetObjectObjectLock' : {
+		'httpMethod' : 'PUT',
+		'urlPath' : 'retention',
+		'data' : {
+			'xmlRoot' : 'Retention',
+		},
+		'parameters' : {
+			'Bucket' : {
+				'required' : true,
+				'location' : 'uri',
+			},
+			'Key' : {
+				'required' : true,
+				'location' : 'uri',
+			},
+			'VersionId' : {
+				'location' : 'urlPath',
+				'sentAs' : 'versionId',
+			},
+			'Mode': {
+				'sentAs': 'Mode',
+				'location': 'xml'
+			},
+			'RetainUntilDate': {
+				'sentAs': 'RetainUntilDate',
+				'location': 'xml'
+			},
+		},
+	},
 	'GetObjectAcl' : {
 		'httpMethod' : 'GET',
 		'urlPath' : 'acl',
@@ -3304,6 +3200,16 @@ const operations = {
 				'location' : 'urlPath',
 				'sentAs' : 'encoding-type',
 			},
+			'ObjectLockMode': {
+				'location' : 'header',
+				'sentAs' : 'object-lock-mode',
+				'withPrefix': true
+			},
+			'ObjectLockRetainUntailDate': {
+				'location' : 'header',
+				'sentAs' : 'object-lock-retain-until-date',
+				'withPrefix': true
+			},
 			'Bucket' : {
 				'required' : true,
 				'location' : 'uri',
@@ -3364,28 +3270,7 @@ const operations = {
 				'location' : 'header',
 				'sentAs' : 'Content-Type'
 			},
-			'SseKms' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption',
-				'withPrefix' : true,
-				'type' : 'adapter'
-			},
-			'SseKmsKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-aws-kms-key-id',
-				'withPrefix' : true,
-			},
-			'SseC' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-algorithm',
-				'withPrefix' : true,
-			},
-			'SseCKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-key',
-				'type' : 'password',
-				'withPrefix' : true,
-			},
+			...ObjectEncryptionRule,
 		},
 	},
 	'InitiateMultipartUploadOutput' : {
@@ -3411,26 +3296,7 @@ const operations = {
 				'location' : 'xml',
 				'sentAs' : 'UploadId',
 			},
-			'SseKms' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption',
-				'withPrefix' : true,
-			},
-			'SseKmsKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-aws-kms-key-id',
-				'withPrefix' : true,
-			},
-			'SseC' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-algorithm',
-				'withPrefix' : true,
-			},
-			'SseCKeyMd5' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-key-MD5',
-				'withPrefix' : true,
-			}
+			...ObjectEncryptionRule,
 		},
 	},
 	'ListMultipartUploads' : {
@@ -3572,6 +3438,11 @@ const operations = {
 				'location' : 'header',
 				'sentAs' : 'Content-MD5',
 			},
+			'ContentSHA256' : {
+				'location' : 'header',
+				'sentAs' : 'content-sha256',
+				'withPrefix' : true,
+			},
 			'Body' : {
 				'location' : 'body',
 			},
@@ -3606,26 +3477,7 @@ const operations = {
 				'location' : 'header',
 				'sentAs' : 'etag',
 			},
-			'SseKms' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption',
-				'withPrefix' : true
-			},
-			'SseKmsKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-aws-kms-key-id',
-				'withPrefix' : true
-			},
-			'SseC' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-algorithm',
-				'withPrefix' : true
-			},
-			'SseCKeyMd5' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-key-MD5',
-				'withPrefix' : true
-			}
+			...ObjectEncryptionRule,
 		},
 	},
 	'ListParts' : {
@@ -3801,26 +3653,7 @@ const operations = {
 				'location' : 'xml',
 				'sentAs' : 'ETag',
 			},
-			'SseKms' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption',
-				'withPrefix' : true
-			},
-			'SseKmsKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-aws-kms-key-id',
-				'withPrefix' : true
-			},
-			'SseC' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-algorithm',
-				'withPrefix' : true
-			},
-			'SseCKeyMd5' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-key-MD5',
-				'withPrefix' : true
-			}
+			...ObjectEncryptionRule,
 		},
 	},
 	'AbortMultipartUpload' : {
@@ -3932,26 +3765,7 @@ const operations = {
 				'location' : 'xml',
 				'sentAs' : 'ETag',
 			},
-			'SseKms' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption',
-				'withPrefix' : true
-			},
-			'SseKmsKey' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-aws-kms-key-id',
-				'withPrefix' : true
-			},
-			'SseC' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-algorithm',
-				'withPrefix' : true
-			},
-			'SseCKeyMd5' :{
-				'location' : 'header',
-				'sentAs' : 'server-side-encryption-customer-key-MD5',
-				'withPrefix' : true
-			}
+			...ObjectEncryptionRule,
 		},
 		"CallbackResponse": {
 			'location': 'body',
@@ -4123,29 +3937,7 @@ const operations = {
 			'xmlRoot' : 'ServerSideEncryptionConfiguration'
 		},
 		'parameters' : {
-			'Rule' : {
-				'type': 'object',
-				'location': 'xml',
-				'sentAs': 'Rule',
-
-				'parameters': {
-					'ApplyServerSideEncryptionByDefault': {
-						'type': 'object',
-						'sentAs': 'ApplyServerSideEncryptionByDefault',
-						'parameters': {
-							'SSEAlgorithm': {
-								'sentAs': 'SSEAlgorithm'
-							},
-							'KMSMasterKeyID': {
-								'sentAs': 'KMSMasterKeyID'
-							},
-							'ProjectID': {
-								'sentAs': 'ProjectID'
-							}
-						}
-					}
-				}
-			}
+			'Rule': bucketEncryptionRule
 		}
 	},
 	'SetBucketEncryption': {
@@ -4564,7 +4356,12 @@ const operations = {
 			'Bucket': {
 				'required' : true,
 				'location' : 'uri'
-			}
+			},
+			'NotForwardTag': {
+				'type': 'string',
+				'sentAs': 'x-obs-not-forward-tag',
+				'location': 'header'
+			},
 		}
 	},
 	'GetCDNNotifyConfigurationOutput': {
@@ -4573,26 +4370,7 @@ const operations = {
 			'xmlRoot' : 'CDNNotifyConfiguration'
 		},
 		'parameters' : {
-			'Domain' : {
-				'location': 'xml',
-				'type': 'array',
-				'sentAs': 'Domain',
-				'items' : {
-					'type' : 'object',
-					'parameters' : {
-						'Name' : {
-							'sentAs' : 'Name',
-						},
-						'Events' : {
-							'type' : 'array',
-							'items' : {
-								'type' : 'adapter'
-							},
-							'sentAs': 'Event'
-						}
-					}
-				}
-			}
+			'Domain' : CDNNotifyConfiguration,
 		}
 	},
 	'SetCdnNotifyConfiguration': {
@@ -4607,6 +4385,11 @@ const operations = {
 				'required': true,
 				'location': 'uri',
 
+			},
+			'NotForwardTag': {
+				'type': 'string',
+				'sentAs': 'x-obs-not-forward-tag',
+				'location': 'header'
 			},
 			'Domain': CDNNotifyConfiguration
 		},
@@ -4732,6 +4515,15 @@ const operations = {
 			}
 		}
 	},
+	CreateAuditPolicy,
+	CreateAuditPolicyOutput,
+	GetAuditPolicy,
+	GetAuditPolicyOutput,
+	PutAuditPolicy,
+	PutAuditPolicyOutPut,
+	DeleteAuditPolicy,
+	GetAuditResult,
+	GetAuditResultOutput,
 	'DeleteWorkflow': {
 		'httpMethod' : 'DELETE',
 		'parameters' : {

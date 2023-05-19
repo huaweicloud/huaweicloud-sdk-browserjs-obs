@@ -44,6 +44,8 @@ const methods = [
 	'deleteBucketWebsiteConfiguration',
 	'setBucketNotification',
 	'getBucketNotification',
+	'getBucketObjectLockConfiguration',
+	'setBucketObjectLockConfig',
 	'setBucketTagging',
 	'getBucketTagging',
 	'deleteBucketTagging',
@@ -56,6 +58,7 @@ const methods = [
     'setObjectMetadata',
     'setObjectAcl',
 	'getObjectAcl',
+	'setObjectObjectLock',
 	'deleteObject',
 	'deleteObjects',
 	'listMultipartUploads',
@@ -79,6 +82,10 @@ const methods = [
 	'restoreFailedWorkflowExecution',
 	'createTemplate',
 	'createWorkflow',
+	'createAuditPolicy',
+	'getAuditPolicy',
+	'deleteAuditPolicy',
+	'getAuditResult',
 	'getWorkflowList',
 	'deleteWorkflow',
 	'getWorkflowTemplateList',
@@ -126,7 +133,6 @@ const methods = [
 	'deleteBucketAlias',
 	'listBucketsAlias',
 	'getBucketAlias',
-
 ];
 
 function createAction(method){
@@ -152,6 +158,29 @@ ObsClient.prototype.createWorkflow = function(param, callback) {
 
 };
 
+ObsClient.prototype.createAuditPolicy = function(param, callback) {
+	param.ApiPath = 'v2/audit/policy';
+    this.exec('CreateAuditPolicy', param, callback);
+
+};
+
+ObsClient.prototype.getAuditPolicy = function(param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = 'v2/audit/policy';
+	this.exec('GetAuditPolicy', param, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.putAuditPolicy = function(param,callback){
+	param.ApiPath = 'v2/audit/policy';
+	this.exec('PutAuditPolicy', param, callback);
+}
+
+ObsClient.prototype.deleteAuditPolicy = function(param, callback){
+	param.ApiPath = 'v2/audit/policy';
+	this.exec('DeleteAuditPolicy', param, callback);
+}
+
 ObsClient.prototype.restoreFailedWorkflowExecution = function(param, callback) {
 	param.ApiPath = 'v2/workflowexecutions';
     this.exec('RestoreFailedWorkflowExecution', param, callback);
@@ -161,8 +190,15 @@ ObsClient.prototype.restoreFailedWorkflowExecution = function(param, callback) {
 ObsClient.prototype.getWorkflowList = function(param, callback) {
 	param.ApiPath = 'v2/workflows';
     this.exec('GetWorkflowList', param, callback);
-
 };
+
+ObsClient.prototype.getAuditResult = function(param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = 'v2/audit/result';
+	this.exec('GetAuditResult', param, callback)
+	this.util.pathStyle = false;
+
+}
 
 ObsClient.prototype.deleteWorkflow = function(param, callback) {
 	param.ApiPath = 'v2/workflows';
@@ -472,7 +508,7 @@ ObsClient.prototype.factory = function(param){
 	param = param || {};
 	this.util.initFactory(param.access_key_id, param.secret_access_key, param.is_secure,
 			param.server, param.path_style, param.signature, param.region, param.port, param.timeout, param.security_token, param.is_signature_negotiation,
-			param.is_cname, param.url_prefix, param.region_domains, param.setRequestHeaderHook, param.useRawXhr);
+			param.is_cname, param.url_prefix, param.region_domains, param.setRequestHeaderHook, param.useRawXhr, param.checksum_algorithm);
 };
 
 ObsClient.prototype.refresh = function(access_key_id, secret_access_key, security_token){

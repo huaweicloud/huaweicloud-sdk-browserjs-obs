@@ -21,6 +21,7 @@ import md5 from 'blueimp-md5';
 import xml2js from './xml2js';
 import obsModel from './obsModel';
 import v2Model from './v2Model';
+import { ContentMD5, ContentSHA256 } from './enums';
 
 const crypto = {
 		createHmac : function(algorithm, key){
@@ -276,6 +277,8 @@ const allowedResourceParameterNames = [
     'response-content-disposition',
     'response-content-encoding',
     'x-image-process',
+	'x-image-save-object',
+    'x-image-save-bucket',
     'x-oss-process',
 	'encryption',
 	'obsworkflowtriggerpolicy',
@@ -302,6 +305,15 @@ const allowedResourceParameterNames = [
 	'sfsacl',
 	'obsbucketalias',
 	'obsalias',
+	'rename',
+    'name',
+    'modify',
+	'attname',
+	'inventory',
+	'truncate',
+	'object-lock',
+	"retention",
+	'x-obs-security-token',
 ];
 
 
@@ -338,9 +350,9 @@ const commonHeaders = {
 	'x-reserved' : 'Reserved'
 };
 
-const obsAllowedStorageClass = ['STANDARD', 'WARM', 'COLD'];
+const obsAllowedStorageClass = ['STANDARD', 'WARM', 'COLD', 'DEEP_ARCHIVE'];
 
-const v2AllowedStorageClass = ['STANDARD', 'STANDARD_IA', 'GLACIER'];
+const v2AllowedStorageClass = ['STANDARD', 'STANDARD_IA', 'GLACIER', 'DEEP_ARCHIVE'];
 
 const obsAllowedAcl = ['private', 'public-read', 'public-read-write', 'public-read-delivered', 'public-read-write-delivered'];
 
@@ -350,10 +362,12 @@ const obsAllowedUri = ['Everyone', 'LogDelivery'];
 
 const v2AllowedUri = ['http://acs.amazonaws.com/groups/global/AllUsers', 'http://acs.amazonaws.com/groups/global/AuthenticatedUsers', 'http://acs.amazonaws.com/groups/s3/LogDelivery'];
 
-const obsAllowedEvent = ['ObjectCreated', 'ObjectRemoved', 'ObjectCreated:*', 'ObjectCreated:Put', 'ObjectCreated:Post', 'ObjectCreated:Copy',
-    'ObjectCreated:CompleteMultipartUpload', 'ObjectRemoved:*', 'ObjectRemoved:Delete', 'ObjectRemoved:DeleteMarkerCreated'];
-const v2AllowedEvent = ['ObjectCreated', 'ObjectRemoved', 's3:ObjectCreated:*', 's3:ObjectCreated:Put', 's3:ObjectCreated:Post', 's3:ObjectCreated:Copy',
-    's3:ObjectCreated:CompleteMultipartUpload', 's3:ObjectRemoved:*', 's3:ObjectRemoved:Delete', 's3:ObjectRemoved:DeleteMarkerCreated'];
+const obsAllowedEvent = ['ObjectCreated', 'ObjectCreated:*', 'ObjectCreated:Put', 'ObjectCreated:Post', 'ObjectCreated:Copy', 'ObjectCreated:CompleteMultipartUpload', 
+	'ObjectRemoved', 'ObjectRemoved:*', 'ObjectRemoved:Delete', 'ObjectRemoved:DeleteMarkerCreated',
+	'ObjectChanged:*', 'ObjectChanged:Rename', 'ObjectChanged:Truncate', 'ObjectChanged:Modify'];
+const v2AllowedEvent = ['ObjectCreated',  's3:ObjectCreated:*', 's3:ObjectCreated:Put', 's3:ObjectCreated:Post', 's3:ObjectCreated:Copy','s3:ObjectCreated:CompleteMultipartUpload', 
+	'ObjectRemoved', 's3:ObjectRemoved:*', 's3:ObjectRemoved:Delete', 's3:ObjectRemoved:DeleteMarkerCreated', 'ObjectRemoved:*', 'ObjectRemoved:Delete', 'ObjectRemoved:DeleteMarkerCreated',
+    'ObjectChanged:*', 'ObjectChanged:Rename', 'ObjectChanged:Truncate', 'ObjectChanged:Modify'];
 
 const ignoreNegotiationMethod =['CreateBucket','SetBucketAlias','BindBucketAlias','UnbindBucketAlias','DeleteBucketAlias','GetBucketAlias'];
 const negotiateMethod = 'HeadApiVersion';
@@ -588,13 +602,19 @@ Utils.prototype.refresh = function(ak, sk, securityToken){
 
 Utils.prototype.initFactory = function(ak, sk, isSecure,
 		server, pathStyle, signature, region, port, timeout, securityToken, isSignatureNegotiation,
-		isCname, urlPrefix, regionDomains, setRequestHeaderHook, useRawXhr){
+		isCname, urlPrefix, regionDomains, setRequestHeaderHook, useRawXhr, checksumAlgorithm){
 
 	this.refresh(ak, sk, securityToken);
 
     this.urlPrefix = urlPrefix || '';
     this.regionDomains = regionDomains || null;
     this.setRequestHeaderHook = setRequestHeaderHook || null;
+	this.checkAlgorithm = ContentMD5;
+
+	if (typeof checksumAlgorithm === 'string' && checksumAlgorithm.toLowerCase() === 'sha256') {
+		this.checkAlgorithm = ContentSHA256;
+	}
+	
 	if (!server) {
 		throw new Error('Server is not set');
 	}
@@ -679,6 +699,16 @@ Utils.prototype.SseKmsAdapter = function(value, signatureContext){
 	return index === 0 ? value : 'aws:' + value;
 };
 
+Utils.prototype.SseModeAdapter = function(value, signatureContext){
+	value = value || '';
+	value = String(value);
+	let index = value.indexOf('aws:');
+	if(signatureContext.signature === 'obs'){
+		return index === 0 ? value.slice(4) : value;
+	}
+	return index === 0 ? value : 'aws:' + value;
+};
+
 Utils.prototype.BucketAdapter = function(value, signatureContext){
 	value = value || '';
 	value = String(value);
@@ -709,6 +739,11 @@ Utils.prototype.EventAdapter = function(value, signatureContext){
 	}
 	return '';
 };
+
+Utils.prototype.EventsAdapter = function(value, signatureContext){
+	return this.EventAdapter(value, signatureContext);
+};
+
 
 Utils.prototype.URIAdapter = function(value, signatureContext){
 	value = value || '';
@@ -1210,7 +1245,9 @@ Utils.prototype.makeParam = function(methodName, param){
 	opt.urlPath = urlPath;
 	if(xml){
 		if(model.data && model.data.md5){
-			exheaders['Content-MD5'] = this.bufMD5(xml);
+			this.checkAlgorithm === ContentSHA256 
+				? exheaders[`${signatureContext.headerPrefix}${ContentSHA256.toLowerCase()}`] = this.bufSHA256(xml, 'hex')
+				: exheaders[ContentMD5] = this.bufMD5(xml);
 			exheaders['Content-Length'] = xml.length === 0 ? '0' : String(xml.length);
 		}
 		opt.xml = xml;
@@ -1445,7 +1482,6 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
 
 Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 	let log = this.log;
-	// let server = this.server;
 	let body = opt.xml || null;
 	let signatureContext = opt.signatureContext || this.signatureContext;
 	delete opt.headers.Authorization; // retry bug fix
@@ -1468,6 +1504,11 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 		let rawUri = opt.rawUri.split('/');
 		let bucketName = rawUri[1];
 		let objectKey = opt.rawUri.slice(('/' + bucketName + '/').length);
+		
+		if (this.isCname) {
+			objectKey = opt.rawUri.slice(1);
+			bucketName = ''
+		}
 
 		let ret = {};
 		ret.CommonMsg = {
@@ -1557,7 +1598,6 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 	delete ex.Host;
 	delete ex['Content-Length'];
 
-	// 	ex['X-Requested-With'] = "XMLHttpRequest";
 	let responseType = 'text';
 	if(opt.dstFile && opt.dstFile !== 'file' && (opt.dstFile === 'arraybuffer' || opt.dstFile === 'blob')){
 		responseType = String(opt.dstFile);
@@ -1827,6 +1867,11 @@ Utils.prototype.sendRequest = function(funcName, opt, backcall, retryCount){
 	if(retryCount === undefined){
 		retryCount = 1;
 	}
+	let uploadPartRetry = false
+	if(retryCount <= opt.$requestParam.maxPartRetryCount){
+		uploadPartRetry = true
+	}
+	const host = opt.headers.Host
 	let that = this;
 	that.makeRequest(funcName, opt, retryCount, function(err, msg){
 		if(err && err.message === 'redirect'){
@@ -1837,6 +1882,9 @@ Utils.prototype.sendRequest = function(funcName, opt, backcall, retryCount){
 			opt.headers.Host = uri.hostname;
 			opt.protocol = uri.protocol;
 			opt.port = uri.port || ((opt.protocol && opt.protocol.toLowerCase().indexOf('https') === 0) ? 443 : 80);
+			that.sendRequest(funcName, opt, backcall, retryCount + 1);
+		}else if(funcName === 'UploadPart' && uploadPartRetry && (err || msg.CommonMsg.Status > 300)){
+			opt.headers.Host = host
 			that.sendRequest(funcName, opt, backcall, retryCount + 1);
 		}else{
 			backcall(err, msg);
@@ -1970,6 +2018,10 @@ Utils.prototype.v4Auth = function(opt, methodName, signatureContext){
 
 Utils.prototype.bufMD5 = function(buf) {
 	return crypto.createHash('md5').update(buf).digest('base64');
+};
+
+Utils.prototype.bufSHA256 = function(buf, type = 'base64') {
+	return crypto.createHash('sha256').update(buf).digest(type);
 };
 
 Utils.prototype.rawBufMD5 = function(buf) {

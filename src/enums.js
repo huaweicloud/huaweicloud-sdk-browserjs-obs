@@ -11,6 +11,7 @@ exports.AclLogDeliveryWrite = 'log-delivery-write';
 exports.StorageClassStandard = 'STANDARD';
 exports.StorageClassWarm = 'WARM';
 exports.StorageClassCold = 'COLD';
+exports.StorageClassDeepArchive = 'DEEP_ARCHIVE';
 
 exports.PermissionRead = 'READ';
 exports.PermissionWrite = 'WRITE';
@@ -40,3 +41,6 @@ exports.EventObjectCreatedCompleteMultipartUpload = 'ObjectCreated:CompleteMulti
 exports.EventObjectRemovedAll = 'ObjectRemoved:*';
 exports.EventObjectRemovedDelete = 'ObjectRemoved:Delete';
 exports.EventObjectRemovedDeleteMarkerCreated = 'ObjectRemoved:DeleteMarkerCreated';
+
+exports.ContentMD5 = 'Content-MD5';
+exports.ContentSHA256 = 'Content-SHA256';

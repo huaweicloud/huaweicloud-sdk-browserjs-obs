@@ -1,6 +1,6 @@
 {
   "name": "esdk-obs-browserjs",
-  "version": "3.22.3",
+  "version": "3.23.5",
   "description": "esdk-obs-browserjs",
   "engines": {
     "node": ">=0.12.7"
@@ -22,6 +22,7 @@
     "@babel/polyfill": "^7.12.1",
     "@babel/preset-env": "^7.15.6",
     "babel-loader": "^8.2.2",
+    "filemanager-webpack-plugin": "^7.0.0-alpha.2",
     "webpack": "^5.52.1",
     "webpack-cli": "^4.8.0"
   }

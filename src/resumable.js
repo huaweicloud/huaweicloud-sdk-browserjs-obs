@@ -197,12 +197,14 @@ let startToUploadFile = function(ctx){
 	
 	let taskQueue = [];
 	let doNext = function(){
+		if(taskQueue.length === 0){
+			completedRequest(ctx);
+			return
+		}
 		while(ctx.runningTask < ctx.taskNum && taskQueue.length > 0){
 			taskQueue.shift()();
 		}
-		if(taskQueue.length === 0){
-			completedRequest(ctx);
-		}
+		
 	};
 	
 	let createProgressCallbackByPartNumber = function(partNumber){
@@ -266,6 +268,7 @@ let startToUploadFile = function(ctx){
 					PartNumber: part.partNumber,
 					UploadId : ctx.uploadCheckpoint.uploadId,
 					SourceFile: ctx.uploadCheckpoint.sourceFile,
+					maxPartRetryCount : ctx.maxPartRetryCount,
 					Offset : part.offset,
 					PartSize : part.partSize,
 					SseC : ctx.uploadCheckpoint.sseC,
@@ -356,6 +359,7 @@ resumable.extend = function(ObsClient){
 		let _callback = wrapCallback(callback, that.log, funcName);
 		let eventCallback = wrapEventCallback(param.EventCallback);
 		let taskNum = param.TaskNum || 1;
+		let maxPartRetryCount = param.PartRetryNum || 0;
 		let progressCallback = param.ProgressCallback || function(){};
 		let resumeCallback = param.ResumeCallback || function(){};
 		let verifyMd5 = param.VerifyMd5 || false;
@@ -454,6 +458,7 @@ resumable.extend = function(ObsClient){
 			start : new Date().getTime(),
 			uploadCheckpoint : uploadCheckpoint,
 			funcName : funcName, 
+			maxPartRetryCount : maxPartRetryCount,
 			taskNum : taskNum,
 			callback : _callback,
 			that : that,
