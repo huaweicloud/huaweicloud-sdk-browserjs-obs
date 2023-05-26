@@ -36,6 +36,12 @@ let isFunction = function(obj){
 	return Object.prototype.toString.call(obj) === '[object Function]';
 };
 
+let isBinary = function(obj){
+	const isFile = Object.prototype.toString.call(obj) === '[object File]';
+	const isBlob = Object.prototype.toString.call(obj) === '[object Blob]';
+	return isFile || isBlob
+};
+
 let wrapEventCallback = function(eventCallback){
 	eventCallback = eventCallback || function(){};
 	return function(t, eventParam, result){
@@ -309,7 +315,7 @@ let startToUploadFile = function(ctx){
 			};
 			
 			
-			if(ctx.verifyMd5 && window.FileReader && ((ctx.uploadCheckpoint.sourceFile instanceof window.File) || (ctx.uploadCheckpoint.sourceFile instanceof window.Blob))){
+			if(ctx.verifyMd5 && window.FileReader && isBinary(ctx.uploadCheckpoint.sourceFile)){
 				let _sourceFile = sliceBlob(ctx.uploadCheckpoint.sourceFile, part.offset, part.offset + part.partSize);
 				let fr = new window.FileReader();
 				fr.onload = function(e){	
@@ -375,7 +381,7 @@ resumable.extend = function(ObsClient){
 		
 		if(!uploadCheckpoint){
 			let sourceFile = param.SourceFile;
-			if(!(sourceFile instanceof window.File) && !(sourceFile instanceof window.Blob)){
+			if(!isBinary(sourceFile)){
 				return _callback('source file is not valid, must be an instanceof [File | Blob]');
 			}
 			
@@ -443,7 +449,7 @@ resumable.extend = function(ObsClient){
 			uploadCheckpoint.md5 = calculateUploadCheckpointMD5(uploadCheckpoint);
 		}else{
 			let sourceFile = uploadCheckpoint.sourceFile;
-			if(!(sourceFile instanceof window.File) && !(sourceFile instanceof window.Blob)){
+			if(!isBinary(sourceFile)){
 				return _callback('source file is not valid, must be an instanceof [File | Blob]');
 			}
 			
