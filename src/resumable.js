@@ -14,6 +14,7 @@
  */
 import md5 from 'blueimp-md5';
 import { Base64 } from 'js-base64';
+import CryptoJS from 'crypto-js'
 
 const minPartSize = 100 * 1024;
 const defaultPartSize = 9 * 1024 * 1024;
@@ -183,13 +184,23 @@ let completedRequest = function(ctx){
 };
 
 let startToUploadFile = function(ctx){
+	function cancel(){
+		ctx.isSuspend = true;
+		for(let i=0;i<ctx.uploadPartParams.length;i++){
+			let cancelHook = ctx.uploadPartParams[i].cancelHook;
+			if(isFunction(cancelHook)){
+				cancelHook();
+			}
+		}
+	};
 	ctx.resumeCallback({
-		cancel : function(){
-			ctx.isSuspend = true;
+		cancel,
+		abort : function(){
+			ctx.isAbort = true;
 			for(let i=0;i<ctx.uploadPartParams.length;i++){
-				let cancelHook = ctx.uploadPartParams[i].cancelHook;
-				if(isFunction(cancelHook)){
-					cancelHook();
+				let abortHook = ctx.uploadPartParams[i].abortHook;
+				if(isFunction(abortHook)){
+					abortHook();
 				}
 			}
 		}
@@ -225,25 +236,6 @@ let startToUploadFile = function(ctx){
 	};
 	
 	let encodeFunc = window.btoa ? window.btoa : Base64.encode;
-	
-	let transArrayBufferToBinaryString = function(buf){
-		let readSize = 16 * 1024;
-		buf = new Uint8Array(buf);
-		let start = 0;
-		let data;
-		while(start < buf.length){
-			let end = start + readSize;
-			end = end <= buf.length ? end : buf.length;
-			if(!data){
-				data = String.fromCharCode.apply(null, buf.slice(start, end));
-			}else{
-				data += String.fromCharCode.apply(null, buf.slice(start, end));
-			}
-			start = end;
-		}
-		buf = null;
-		return data;
-	};
 	
 	let createUploadPartTask = function(part){
 		return function(){
@@ -313,8 +305,9 @@ let startToUploadFile = function(ctx){
 				let _sourceFile = sliceBlob(ctx.uploadCheckpoint.sourceFile, part.offset, part.offset + part.partSize);
 				let fr = new window.FileReader();
 				fr.onload = function(e){	
-					let data = transArrayBufferToBinaryString(e.target.result);
-					let contentMd5 = encodeFunc(md5(data, false, true));
+					let data = CryptoJS.lib.WordArray.create(e.target.result)
+					let md5checksum = CryptoJS.MD5(data);
+					let contentMd5 = CryptoJS.enc.Base64.stringify(md5checksum);
 					data = null;
 					doUploadPart(contentMd5);
 				};

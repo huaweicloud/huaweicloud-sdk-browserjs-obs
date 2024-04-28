@@ -110,6 +110,30 @@ export const ObjectEncryptionRule = {
     }
 }
 
+export const BucketEncryptionRule = {
+    'SseMode' :{
+        'location' : 'header',
+        'sentAs' : 'server-side-encryption',
+        'withPrefix' : true,
+        'type' : 'adapter'
+    },
+    'SseAlgorithm': {
+        'location' : 'header',
+        'sentAs' : 'server-side-data-encryption',
+        'withPrefix' : true,
+    },
+    'SseKmsKey' :{
+        'location' : 'header',
+        'sentAs' : 'server-side-encryption-kms-key-id',
+        'withPrefix' : true,
+    },
+    'SseKmsProjectId' :{
+        'location' : 'header',
+        'sentAs': 'sse-kms-key-project-id',
+        'withPrefix' : true,
+    }
+}
+
 export const CreateAuditPolicy = {
     'httpMethod' : 'POST',
     'parameters' : {
@@ -300,6 +324,9 @@ export const lifecycleRule = {
 						'type' : 'number',
 						'sentAs' : 'Days'
 					},
+                    'ExpiredObjectDeleteMarker':{
+                        'sentAs' : 'ExpiredObjectDeleteMarker'
+                    }
 				},
 			},
             'AbortIncompleteMultipartUpload' : {
@@ -364,3 +391,187 @@ export const ObjectLock = {
 		
 	}
 }
+
+export const CustomDomainBody = {
+    'Name' : {
+        'location' : 'xml',
+        'sentAs' : 'Name',
+    },
+    'CertificateId' : {
+        'location' : 'xml',
+        'sentAs' : 'CertificateId',
+    },
+    'Certificate' : {
+        'location' : 'xml',
+        'sentAs' : 'Certificate',
+    },
+    'CertificateChain' : {
+        'location' : 'xml',
+        'sentAs' : 'CertificateChain',
+    },
+    'PrivateKey' : {
+        'location' : 'xml',
+        'sentAs' : 'PrivateKey',
+    },
+};
+
+export const functionGraphConfiguration = {
+	'type' : 'array',
+	'location' : 'xml',
+	'sentAs' : 'FunctionGraphConfiguration',
+	'items' : {
+		'type' : 'object',
+		'location' : 'xml',
+		'parameters' : {
+			'ID' : {
+				'sentAs' : 'Id'
+			},
+			'Filter' : {
+				'type' : 'object',
+				'parameters' : {
+					'FilterRules' : {
+						'wrapper' : 'Object',
+						'type' : 'array',
+						'sentAs' : 'FilterRule',
+						'items' : {
+							'type' : 'object',
+							'parameters' : {
+								'Name' : {},
+								'Value' : {}
+							}
+						}
+					}
+				}
+			},
+			'FunctionGraph' : {},
+
+			'Event' : {
+				'type' : 'array',
+				'items' : {
+					'type' : 'adapter',
+				}
+			}
+		}
+	}
+};
+
+export const topicConfiguration = {
+		'type' : 'array',
+		'location' : 'xml',
+		'sentAs' : 'TopicConfiguration',
+		'items' : {
+			'type' : 'object',
+			'location' : 'xml',
+			'parameters' : {
+				'ID' : {
+					'sentAs' : 'Id'
+				},
+				'Filter' : {
+					'type' : 'object',
+					'parameters' : {
+						'FilterRules' : {
+							'wrapper' : 'Object',
+							'type' : 'array',
+							'sentAs' : 'FilterRule',
+							'items' : {
+								'type' : 'object',
+								'parameters' : {
+									'Name' : {},
+									'Value' : {}
+								}
+							}
+						}
+					}
+				},
+				'Topic' : {},
+
+				'Event' : {
+					'type' : 'array',
+					'items' : {
+						'type' : 'adapter'
+					}
+				}
+			}
+		}
+};
+
+export const eventGridConfiguration = {
+	'type' : 'array',
+	'location' : 'xml',
+	'sentAs' : 'EventGridConfiguration',
+	'items' : {
+		'type' : 'object',
+		'location' : 'xml',
+		'parameters' : {
+			'ID' : {
+				'sentAs' : 'Id'
+			},
+			'Filter' : {
+				'type' : 'object',
+				'parameters' : {
+					'FilterRules' : {
+						'wrapper' : 'Object',
+						'type' : 'array',
+						'sentAs' : 'FilterRule',
+						'items' : {
+							'type' : 'object',
+							'parameters' : {
+								'Name' : {},
+								'Value' : {}
+							}
+						}
+					}
+				}
+			},
+			'ChannelId' : {},
+			'ObjectKeyEncode' : {},
+			'UseOBSMessageLayout' : {},
+			'Event' : {
+				'type' : 'array',
+				'items' : {
+					'type' : 'adapter'
+				}
+			}
+		}
+	}
+};
+
+export const functionStageConfiguration = {
+	'type' : 'array',
+	'location' : 'xml',
+	'sentAs' : 'FunctionStageConfiguration',
+	'items' : {
+		'type' : 'object',
+		'location' : 'xml',
+		'parameters' : {
+			'ID' : {
+				'sentAs' : 'Id'
+			},
+			'Filter' : {
+				'type' : 'object',
+				'parameters' : {
+					'FilterRules' : {
+						'wrapper' : 'Object',
+						'type' : 'array',
+						'sentAs' : 'FilterRule',
+						'items' : {
+							'type' : 'object',
+							'parameters' : {
+								'Name' : {},
+								'Value' : {}
+							}
+						}
+					}
+				}
+			},
+			'FunctionStage' : {},
+	
+			'Event' : {
+				'type' : 'array',
+				'items' : {
+					'type' : 'adapter',
+				}
+			}
+		}
+	}	
+};

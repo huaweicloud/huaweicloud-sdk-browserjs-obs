@@ -12,6 +12,7 @@ exports.StorageClassStandard = 'STANDARD';
 exports.StorageClassWarm = 'WARM';
 exports.StorageClassCold = 'COLD';
 exports.StorageClassDeepArchive = 'DEEP_ARCHIVE';
+exports.StorageClassIntelligentTiering = 'INTELLIGENT_TIERING';
 
 exports.PermissionRead = 'READ';
 exports.PermissionWrite = 'WRITE';

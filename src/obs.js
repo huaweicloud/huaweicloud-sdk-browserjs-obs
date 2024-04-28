@@ -14,10 +14,13 @@ function capitalize(key){
 
 const methods = [
 	'createBucket',
+	'createSfsBucket',
 	'listBuckets',
+	'listSfsBuckets',
 	'getBucketMetadata',
 	'headBucket',
 	'deleteBucket',
+	'deleteSfsBucket',
 	'setBucketQuota',
 	'getBucketQuota',
 	'getBucketStorageInfo',
@@ -132,7 +135,18 @@ const methods = [
 	'unbindBucketAlias',
 	'deleteBucketAlias',
 	'listBucketsAlias',
-	'getBucketAlias',
+	'getBucketAlias',	
+	'getSFSPermissionAcl',
+	'updateSFSPermissionAcl',
+	'deleteSFSPermissionAcl',
+	'getSFSPermissionGroupList',
+	'setSFSPermissionGroup',
+	'updateSFSPermissionGroup',
+	'getSFSPermissionGroup',
+	'deleteSFSPermissionGroup',
+	'setObjectTagging',
+	'getObjectTagging',
+	'deleteObjectTagging',
 ];
 
 function createAction(method){
@@ -309,6 +323,34 @@ ObsClient.prototype.deleteMyActionTemplate = function(param, callback) {
 	this.util.pathStyle = false;
 };
 
+ObsClient.prototype.createSfsBucket = function(param, callback) {
+	this.util.pathStyle = true;
+	const data = {...param}
+	const bucketName = data.Bucket
+	data.ApiPath = `v1/sfs/${bucketName}`;
+	delete data.Bucket
+	this.exec('CreateSfsBucket', data, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.listSfsBuckets = function(param, callback) {
+	this.util.pathStyle = true;
+	const data = {...param}
+	data.ApiPath = `v1/sfs`;
+	this.exec('ListSfsBuckets', data, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.deleteSfsBucket = function(param, callback) {
+	this.util.pathStyle = true;
+	const data = {...param};
+	const bucketName = data.Bucket;
+	data.ApiPath = `v1/sfs/${bucketName}`;
+	delete data.Bucket
+	this.exec('DeleteSfsBucket', data, callback);
+	this.util.pathStyle = false;
+};
+
 ObsClient.prototype.forbidMyActionTemplate = function(param, callback) {
 	this.util.pathStyle = true;
 	param.ApiPath = 'v2/myactiontemplates';
@@ -428,6 +470,71 @@ ObsClient.prototype.uploadPart = function(param, callback){
 	this.exec('UploadPart', param, callback);
 };
 
+ObsClient.prototype.getSFSPermissionAcl = function (param, callback) {
+	this.util.pathStyle = true;
+	const data = {...param}
+	data.ApiPath = `v3/bucket/${param.Bucket}/sfsacl`;
+	delete data.Bucket
+	this.exec('getSFSPermissionAcl', data, callback);
+	this.util.pathStyle = false;
+};
+  
+ObsClient.prototype.updateSFSPermissionAcl = function (param, callback) {
+	this.util.pathStyle = true;
+	const data = {...param}
+	data.ApiPath = `v3/bucket/${param.Bucket}/sfsacl`;
+	delete data.Bucket
+	this.exec('updateSFSPermissionAcl', data, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.deleteSFSPermissionAcl = function (param, callback) {
+	this.util.pathStyle = true;
+	const data = {...param}
+	data.ApiPath = `v3/bucket/${param.Bucket}/sfsacl`;
+	delete data.Bucket
+	this.exec('deleteSFSPermissionAcl', data, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.getSFSPermissionGroupList = function (param, callback) {
+	if (!param) {
+		param = {};
+	}
+	this.util.pathStyle = true;
+	param.ApiPath = `v3/sfs/permission-group`;
+	this.exec('getSFSPermissionGroupList', param, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.setSFSPermissionGroup = function (param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = `v3/sfs/permission-group`;
+	this.exec('setSFSPermissionGroup', param, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.updateSFSPermissionGroup = function (param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = `v3/sfs/permission-group/${param.id}`;
+	this.exec('updateSFSPermissionGroup', param, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.getSFSPermissionGroup = function (param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = `v3/sfs/permission-group/${param.id}`;
+	this.exec('getSFSPermissionGroup', param, callback);
+	this.util.pathStyle = false;
+};
+
+ObsClient.prototype.deleteSFSPermissionGroup = function (param, callback) {
+	this.util.pathStyle = true;
+	param.ApiPath = `v3/sfs/permission-group/${param.id}`;
+	this.exec('deleteSFSPermissionGroup', param, callback);
+	this.util.pathStyle = false;
+};
+
 posix.extend(ObsClient);
 resumable.extend(ObsClient);
 
@@ -513,6 +620,10 @@ ObsClient.prototype.factory = function(param){
 
 ObsClient.prototype.refresh = function(access_key_id, secret_access_key, security_token){
 	this.util.refresh(access_key_id, secret_access_key, security_token);
+};
+
+ObsClient.prototype.createSignedUrl = function(param){
+	return this.util.createSignedUrl(param);
 };
 
 ObsClient.prototype.createSignedUrlSync = function(param){

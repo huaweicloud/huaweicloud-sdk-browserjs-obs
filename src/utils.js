@@ -350,9 +350,9 @@ const commonHeaders = {
 	'x-reserved' : 'Reserved'
 };
 
-const obsAllowedStorageClass = ['STANDARD', 'WARM', 'COLD', 'DEEP_ARCHIVE'];
+const obsAllowedStorageClass = ['STANDARD', 'WARM', 'COLD', 'DEEP_ARCHIVE', 'INTELLIGENT_TIERING'];
 
-const v2AllowedStorageClass = ['STANDARD', 'STANDARD_IA', 'GLACIER', 'DEEP_ARCHIVE'];
+const v2AllowedStorageClass = ['STANDARD', 'STANDARD_IA', 'GLACIER', 'DEEP_ARCHIVE', 'INTELLIGENT_TIERING'];
 
 const obsAllowedAcl = ['private', 'public-read', 'public-read-write', 'public-read-delivered', 'public-read-write-delivered'];
 
@@ -868,7 +868,7 @@ Utils.prototype.doNegotiation = function(funcName, param, callback, checkBucket,
 		o.s = 1;
 	}
 
-	this.doExec(negotiateMethod, checkBucket ? {Bucket:param.Bucket} : {},  function(err, result){
+	this.doExec(negotiateMethod, checkBucket ? {Bucket:param.Bucket, hasRegion: param.hasRegion} : {},  function(err, result){
 		if(err){
 			callback(err, null);
 			if(o){
@@ -1038,6 +1038,9 @@ Utils.prototype.jsonToObject = function(model, obj, root, ifRootXMlDecode){
 Utils.prototype.buildObject = function(model, obj, key, opt, ifRootXMlDecode){
 
 	let setValue = function (value) {
+		if(value === undefined) {
+			return "";
+		}
 		return value && model[key].decode && ifRootXMlDecode
 		? decodeURIComponent(value.replace(/\+/g, '%20'))
 		: value;
@@ -1642,8 +1645,7 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 		// 适配cf2,在请求中增加通配符
 		let baseUrl='';
 		let httpPrefix = _isSecure ? 'https://' : 'http://';
-		if (this.urlPrefix && isFunction(this.setRequestHeaderHook) && methodName !== 'InitiateMultipartUpload' && methodName !== 'UploadPart' &&
-			methodName !== 'CompleteMultipartUpload') {
+		if (this.urlPrefix && isFunction(this.setRequestHeaderHook) && methodName !== 'UploadPart') {
 			let defaultRegion = true;
 			if(opt.$requestParam['hasRegion']||opt.$requestParam['redirectRegion']){
 				defaultRegion = false;
@@ -2028,26 +2030,29 @@ Utils.prototype.rawBufMD5 = function(buf) {
 	return crypto.createHash('md5').update(buf).digest('rawbase64');
 };
 
+Utils.prototype.createSignedUrl = function(param){
+	let signatureContext = param.signatureContext || this.signatureContext;
+	return signatureContext.signature.toLowerCase() === 'v4' ? this.createV4SignedUrlSync(param) : this.createV2SignedUrl(param);
+};
+
 Utils.prototype.createSignedUrlSync = function(param){
 	let signatureContext = param.signatureContext || this.signatureContext;
 	return signatureContext.signature.toLowerCase() === 'v4' ? this.createV4SignedUrlSync(param) : this.createV2SignedUrlSync(param);
 };
 
-Utils.prototype.createV2SignedUrlSync = function(param){
-	param = param || {};
+Utils.prototype.getStringToSign = function(opt, param) {
+	let {isShareFolder, queryParams, queryParamsKeys} = opt
 	let signatureContext = param.signatureContext || this.signatureContext;
 	let method = param.Method ? String(param.Method) : 'GET';
 	let bucketName = param.Bucket ? String(param.Bucket) : null;
 	let objectKey = param.Key ? String(param.Key) : null;
-	let specialParam = param.SpecialParam ? String(param.SpecialParam) : null;
-	if(signatureContext.signature.toLowerCase() === 'obs' && specialParam === 'storagePolicy'){
-		specialParam = 'storageClass';
-	}else if(signatureContext.signature.toLowerCase() === 'v2' && specialParam === 'storageClass'){
-		specialParam = 'storagePolicy';
-	}
 	let policy = param.Policy ? String(param.Policy) : null;
-	let prefix = param.Prefix ? String(param.Prefix) : null;
 	let expires = param.Expires ? parseInt(param.Expires, 10) : 300;
+	if(expires < 0){
+		expires = 300;
+	}
+	expires = parseInt(new Date().getTime() / 1000, 10) + expires;
+	
 	let headers = {};
 	if(param.Headers && (param.Headers instanceof Object) && !(param.Headers instanceof Array)){
 		for(let key in param.Headers) {
@@ -2055,71 +2060,6 @@ Utils.prototype.createV2SignedUrlSync = function(param){
 				headers[key] = param.Headers[key];
 			}
 		}
-	}
-
-	let queryParams = {};
-	if(param.QueryParams && (param.QueryParams instanceof Object) && !(param.QueryParams instanceof Array)){
-		for(let key in param.QueryParams){
-			if ({}.hasOwnProperty.call(param.QueryParams, key)) {
-				queryParams[key] = param.QueryParams[key];
-			}
-		}
-	}
-
-	if(this.securityToken && !queryParams[signatureContext.headerPrefix + 'security-token']){
-		queryParams[signatureContext.headerPrefix + 'security-token'] = this.securityToken;
-	}
-
-	let result = '';
-	let resource = '';
-	let host = this.server;
-	if(this.isCname){
-		resource += '/' + host + '/';
-	}else if(bucketName){
-		resource += '/' + bucketName;
-		if(this.pathStyle){
-			result += '/' + bucketName;
-		}else{
-			host = bucketName + '.' + host;
-			resource += '/';
-		}
-	}
-
-	if(objectKey){
-		objectKey = encodeURIWithSafe(objectKey, '/');
-		result += '/' + objectKey;
-		if(resource.lastIndexOf('/') !== resource.length - 1){
-			resource += '/';
-		}
-		resource += objectKey;
-	}
-
-	if(resource === ''){
-		resource = '/';
-	}
-
-	result += '?';
-
-	if(specialParam){
-		queryParams[specialParam] = '';
-	}
-
-	if(signatureContext.signature.toLowerCase() === 'v2'){
-		queryParams.AWSAccessKeyId = this.ak;
-	}else{
-		queryParams.AccessKeyId = this.ak;
-	}
-
-	if(expires < 0){
-		expires = 300;
-	}
-	expires = parseInt(new Date().getTime() / 1000, 10) + expires;
-
-	if(policy && prefix) {
-		queryParams.Policy = policy;
-		queryParams.prefix = prefix;
-	} else {
-		queryParams.Expires = String(expires);
 	}
 
 	let interestHeaders = {};
@@ -2132,33 +2072,46 @@ Utils.prototype.createV2SignedUrlSync = function(param){
 		}
 	}
 
-	let queryParamsKeys = [];
-	for(let key in queryParams){
-		if ({}.hasOwnProperty.call(queryParams, key)) {
-			queryParamsKeys.push(key);
+	let resource = '';
+	let host = this.server;
+	if(this.isCname){
+		resource += '/' + host + '/';
+	}else if(bucketName){
+		resource += '/' + bucketName;
+		if(!this.pathStyle){
+			host = bucketName + '.' + host;
+			resource += '/';
 		}
 	}
+
+	if(objectKey){
+		if(resource.lastIndexOf('/') !== resource.length - 1){
+			resource += '/';
+		}
+		objectKey = encodeURIWithSafe(objectKey, '/');
+		resource += objectKey;
+	}
+
+	if(resource === ''){
+		resource = '/';
+	}
+
+	// 拼接查询参数
 	queryParamsKeys.sort();
-	let isShareFolder = policy && prefix; 
 	let flag = false;
 	let _resource = [];
-	let safeKey = policy && prefix ? '': '/';
+	let safeKey = isShareFolder ? '': '/';
 	for(let i=0;i<queryParamsKeys.length;i++){
 		let key = queryParamsKeys[i];
 		let val = queryParams[key];
 		key = encodeURIWithSafe(key, safeKey);
 		val = encodeURIWithSafe(val, safeKey);
-		result += key;
-		if(val){
-			result += '=' + val;
-		}
 		// 分享文件夹不需要query信息不需要增加 policy
 		if((!isShareFolder || key.toLowerCase() !== 'policy') && (allowedResourceParameterNames.indexOf(key.toLowerCase())>=0 || key.toLowerCase().indexOf(signatureContext.headerPrefix) === 0)){
 			flag = true;
 			let _val = val ? key + '=' + decodeURIComponent(val) : key;
 			_resource.push(_val);
 		}
-		result += '&';
 	}
 	_resource = _resource.join('&');
 	if(flag){
@@ -2205,8 +2158,174 @@ Utils.prototype.createV2SignedUrlSync = function(param){
 	}else {
 		stringToSign.push(_resource);
 	}
+	return {
+		stringToSign: stringToSign.join(''),
+		headers,
+		host
+	};
+};
+
+function covertStorageClass(storageClass, signature) {
+	if (!['storageClass', 'storagePolicy'].includes(storageClass)) {
+		return
+	}
+	if (signature === 'obs') {
+		return 'storageClass';
+	}
+	if (signature === 'v2') {
+		return 'storagePolicy';
+	}
+};
+
+Utils.prototype.getQueryParams = function(param){
+	let policy = param.Policy ? String(param.Policy) : null;
+	let prefix = param.Prefix ? String(param.Prefix) : null;
+	let expires = param.Expires ? parseInt(param.Expires, 10) : 300;
+	// 循环获取参数中的queryParams
+	let queryParams = {};
+	if(param.QueryParams && (param.QueryParams instanceof Object) && !(param.QueryParams instanceof Array)){
+		for(let key of Object.keys(param.QueryParams)){
+			queryParams[key] = param.QueryParams[key];
+		}
+	}
+	let specialParam = param.SpecialParam ? String(param.SpecialParam) : null;
+
+	// 添加specialParam
+	let signatureContext = param.signatureContext || this.signatureContext;
+	let sc = covertStorageClass(specialParam, signatureContext.signature.toLowerCase());
+	if (sc) {
+		specialParam = sc;
+	}
+	if(specialParam){
+		queryParams[specialParam] = '';
+	}
+	if(param.AfterStringToSign){
+		const pre = '$';
+		queryParams[signatureContext.headerPrefix + 'security-token'] = pre + '{hws:security-token}';
+	}else if(this.securityToken && !queryParams[signatureContext.headerPrefix + 'security-token']){
+		queryParams[signatureContext.headerPrefix + 'security-token'] = this.securityToken;
+	}
+
+	if(expires < 0){
+		expires = 300;
+	}
+	expires = parseInt(new Date().getTime() / 1000, 10) + expires;
+
+	let isShareFolder = policy && prefix; 
+	// 添加policy、prefix、expires
+	if(isShareFolder) {
+		queryParams.Policy = policy;
+		queryParams.prefix = prefix;
+	} else {
+		queryParams.Expires = String(expires);
+	}
+
+	let queryParamsKeys = [];
+	Object.keys(queryParams).forEach(e => {
+		queryParamsKeys.push(e);
+	})
+
+	queryParamsKeys.sort();
+
+	return {isShareFolder, queryParams, queryParamsKeys}
+}
+
+Utils.prototype.getSignResult = function(opt, ak, stsToken) {
+	// 获取计算签名时的resulet
+	let {bucketName, objectKey, signatureContext, isShareFolder, queryParams, queryParamsKeys} = opt
+	// 为queryParams添加钩子函数获取到的ak和token
+	if(stsToken){
+		queryParams[signatureContext.headerPrefix + 'security-token'] = stsToken;
+	}
+
+	if(signatureContext.signature.toLowerCase() === 'v2'){
+		queryParams.AWSAccessKeyId = ak;
+		queryParamsKeys.push('AWSAccessKeyId')
+	}else{
+		queryParams.AccessKeyId = ak;
+		queryParamsKeys.push('AccessKeyId')
+	}
+
+	let result = '';
+	if(bucketName && this.pathStyle){
+		result += '/' + bucketName;
+	}
+	if(objectKey){
+		objectKey = encodeURIWithSafe(objectKey, '/');
+		result += '/' + objectKey;
+	}
+	result += '?';
+	
+	queryParamsKeys.sort();
+	let safeKey = isShareFolder ? '': '/';
+	for(let i=0;i<queryParamsKeys.length;i++){
+		let key = queryParamsKeys[i];
+		let val = queryParams[key];
+		key = encodeURIWithSafe(key, safeKey);
+		val = encodeURIWithSafe(val, safeKey);
+		result += key;
+		if(val){
+			result += '=' + val;
+		}
+		result += '&';
+	}
+	return result
+}
+
+Utils.prototype.createV2SignedUrl = function(param){
+	const isSecure = this.isSecure
+	const port = this.port
+	let {isShareFolder, queryParams, queryParamsKeys} = this.getQueryParams(param)
+
+	let {stringToSign, headers, host} = this.getStringToSign({isShareFolder, queryParams, queryParamsKeys}, param)
+	let getSignResultOpt = {
+		bucketName : param.Bucket ? String(param.Bucket) : null,
+		objectKey : param.Key ? String(param.Key) : null,
+		signatureContext : param.signatureContext || this.signatureContext,
+		isShareFolder,
+		queryParams, 
+		queryParamsKeys, 
+	}
+
+	if (isFunction(param.AfterStringToSign)) {
+		return Promise.resolve(param.AfterStringToSign(stringToSign))
+			.then(({signature, ak, stsToken}) => {
+				let result = this.getSignResult(getSignResultOpt, ak, stsToken)
+				return getSignedUrl(signature, result)
+			})
+	}
+
+	function getSignedUrl(signature, result){
+		if(isShareFolder) {
+			result += 'Signature=' + encodeURIWithSafe(signature);
+		} else {
+			result += 'Signature=' + encodeURIWithSafe(signature, '/');
+		}
+		return {
+			ActualSignedRequestHeaders : headers,
+			SignedUrl : (isSecure ? 'https' : 'http') + '://' + host + ':' + port + result
+		};
+	}
+
+};
+
+Utils.prototype.createV2SignedUrlSync = function(param){
+	let {isShareFolder, queryParams, queryParamsKeys} = this.getQueryParams(param)
+
+	let {stringToSign, headers, host} = this.getStringToSign({isShareFolder, queryParams, queryParamsKeys}, param)
+	let getSignResultOpt = {
+		bucketName : param.Bucket ? String(param.Bucket) : null,
+		objectKey : param.Key ? String(param.Key) : null,
+		signatureContext : param.signatureContext || this.signatureContext,
+		isShareFolder,
+		queryParams, 
+		queryParamsKeys, 
+	}
+	
+	let result = this.getSignResult(getSignResultOpt, this.ak, this.securityToken)
+
 	let hmac = crypto.createHmac('sha1', this.sk);
-	hmac.update(stringToSign.join(''));
+	hmac.update(stringToSign);
 	if(isShareFolder) {
 		result += 'Signature=' + encodeURIWithSafe(hmac.digest('base64'));
 	} else {

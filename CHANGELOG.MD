@@ -1,8 +1,18 @@
+Verison 3.24.3
+
+New features:
+
+1. [Function]  Added the abort upload to the ObsClient.uploadFile API.
+2. [Function]  Function adaptation for object label.
+
+-----------------------------------------------------------------------------------
 Verison 3.20.1
 
 New features:
 
 1. [Function]  Function adaptation for cross-region replications.
+
+-----------------------------------------------------------------------------------
 
 Version 3.19.9
 
