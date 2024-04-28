@@ -1,5 +1,5 @@
 {
-  "name": "@cloud/esdk-obs-browserjs",
+  "name": "esdk-obs-browserjs",
   "version": "3.24.3",
   "description": "esdk-obs-browserjs",
   "engines": {
