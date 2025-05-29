@@ -147,6 +147,14 @@ const methods = [
 	'setObjectTagging',
 	'getObjectTagging',
 	'deleteObjectTagging',
+	'putBucketPublicAccessBlock',
+	'getBucketPublicAccessBlock',
+	'deleteBucketPublicAccessBlock',
+	'getBucketPolicyPublicStatus',
+	'getBucketPublicStatus',
+	'setBucketTrash',
+	'getBucketTrash',
+	'deleteBucketTrash',
 ];
 
 function createAction(method){
@@ -391,6 +399,7 @@ ObsClient.prototype.putObject = function(param, callback){
 	}
 
 	this.exec('PutObject', param, callback);
+	return undefined
 };
 
 ObsClient.prototype.appendObject = function(param, callback){
@@ -412,6 +421,7 @@ ObsClient.prototype.appendObject = function(param, callback){
 	}
 
 	this.exec('AppendObject', param, callback);
+	return undefined
 };
 
 ObsClient.prototype.copyObject = function(param, callback){
@@ -443,7 +453,7 @@ ObsClient.prototype.copyPart = function(param, callback){
 };
 
 ObsClient.prototype.restoreObject = function(param, callback){
-	this.exec('RestoreObject', param, function(err, result){
+	this.exec('RestoreObject', param, (err, result) => {
 		if(!err && result.InterfaceResult && result.CommonMsg.Status < 300){
 			result.InterfaceResult.RestoreStatus = result.CommonMsg.Status === 200 ? 'AVALIABLE' : 'INPROGRESS';
 		}
@@ -468,6 +478,7 @@ ObsClient.prototype.uploadPart = function(param, callback){
 		return callback(new Error(err), null);
 	}
 	this.exec('UploadPart', param, callback);
+	return undefined
 };
 
 ObsClient.prototype.getSFSPermissionAcl = function (param, callback) {
@@ -546,20 +557,21 @@ function createPromise(current){
 	return function(param, callback){
 		if(isFunction(param)){
 			current.call(this, null, param);
-			return;
+			return undefined;
 		}
 		if(isFunction(callback)){
 			current.call(this, param, callback);
-			return;
+			return undefined;
 		}
 
 		let that = this;
-		return new Promise(function(resolve, reject) {
-			current.call(that, param, function(err, result){
+		return new Promise((resolve, reject) => {
+			current.call(that, param, (err, result) => {
 				if(err){
 					return reject(err);
 				}
 				resolve(result);
+				return undefined
 			});
 		});
 	};

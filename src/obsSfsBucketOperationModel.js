@@ -1,5 +1,4 @@
 /**
- * Copyright 2019 Huawei Technologies Co.,Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
  * License at
@@ -12,7 +11,9 @@
  * specific language governing permissions and limitations under the License.
  *
  */
-
+import {
+    PosixTrashBody
+} from './sharedModel';
 export const CreateSfsBucket = {
     'httpMethod' : 'PUT',
         'data' : {
@@ -121,4 +122,47 @@ export const DeleteSfsBucket = {
             'location': 'uri',
         },
     },
+};
+export const SetBucketTrash = {
+    'httpMethod' : 'PUT',
+    'urlPath' : 'x-obs-trash',
+    'data' : {
+        'xmlRoot' : 'BucketTrashConfiguration'
+    },
+    "parameters": {
+        'Bucket' : {
+            'required' : true,
+            'location' : 'uri'
+        },
+        ...PosixTrashBody
+    }
+};
+export const GetBucketTrash = {
+    'httpMethod' : 'GET',
+    'urlPath' : 'x-obs-trash',
+    "parameters": {
+        'Bucket' : {
+            'required' : true,
+            'location' : 'uri'
+        },
+    }
+};
+export const GetBucketTrashOutput = {
+    'data' : {
+        'type' : 'xml',
+        'xmlRoot' : 'BucketTrashConfiguration'
+    },
+    "parameters": {
+        ...PosixTrashBody
+    }
+};
+export const DeleteBucketTrash = {
+    'httpMethod' : 'DELETE',
+    'urlPath' : 'x-obs-trash',
+    "parameters": {
+        'Bucket' : {
+            'required' : true,
+            'location' : 'uri'
+        },
+    }
 };

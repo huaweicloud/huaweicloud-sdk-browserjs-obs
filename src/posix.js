@@ -26,7 +26,7 @@ let wrapEventCallback = function(eventCallback){
 		}
 		
 		if(!result){
-			return;
+			return undefined;
 		}
 		
 		if(result.CommonMsg.Status > 300){
@@ -34,6 +34,7 @@ let wrapEventCallback = function(eventCallback){
 		}
 
 		eventCallback(t, key, result);
+		return undefined;
 	};
 };
 
@@ -77,7 +78,7 @@ posix.extend = function(ObsClient){
 				that.dropFile({
 					Bucket : ctx.bucket,
 					Key : key,
-				}, function(err, result){
+				}, (err, result) => {
 					runningTask--;
 					ctx.finished++;
 					doNext();
@@ -118,7 +119,7 @@ posix.extend = function(ObsClient){
 				Prefix : prefix,
 				Delimiter : delimiter,
 				Marker : marker,
-			}, function(err, result){
+			}, (err, result) => {
 				runningTask--;
 				if(err){
 					return _callback(err);
@@ -132,7 +133,7 @@ posix.extend = function(ObsClient){
 				ctx.total += result.InterfaceResult.CommonPrefixes.length;
 				if(ctx.total === 0){
 					done(ctx);
-					return;
+					return undefined;
 				}
 				
 				ctx.isTruncated = result.InterfaceResult.IsTruncated === 'true';
@@ -144,7 +145,7 @@ posix.extend = function(ObsClient){
 				};
 				
 				for(let j=0;j<result.InterfaceResult.CommonPrefixes.length;j++){
-					let subFolder = checkPrefix(result.InterfaceResult.CommonPrefixes[j]['Prefix']);
+					let subFolder = checkPrefix(result.InterfaceResult.CommonPrefixes[j].Prefix);
 					if(runningTask < taskNum){
 						recursiveDropByFolder({total : 0, finished : 0, isTruncated : false, bucket : bucket, subDeleted : true}, bucket, subFolder, null, createDone(subFolder, ctx, done));
 					}else{
@@ -153,7 +154,7 @@ posix.extend = function(ObsClient){
 				}
 				
 				for(let j=0;j<result.InterfaceResult.Contents.length;j++){
-					let key = result.InterfaceResult.Contents[j]['Key'];
+					let key = result.InterfaceResult.Contents[j].Key;
 					doDropOne(key, ctx, done, key.lastIndexOf(delimiter) === key.length - 1);
 				}
 				
@@ -161,16 +162,17 @@ posix.extend = function(ObsClient){
 					if(runningTask < taskNum){
 						recursiveDropByFolder(ctx, bucket, prefix, result.InterfaceResult.NextMarker, done);
 					}else{
-						taskQueue.push(function(){
+						taskQueue.push(() => {
 							recursiveDropByFolder(ctx, bucket, prefix, result.InterfaceResult.NextMarker, done);
 						});
 					}
 				}
+				return undefined;
 			});
 		};
 		
 		let folder = checkPrefix(param.Prefix);
-		recursiveDropByFolder({total : 0, finished : 0, isTruncated : false, bucket : param.Bucket, subDeleted : true}, param.Bucket, folder, null, function(ctx){
+		recursiveDropByFolder({total : 0, finished : 0, isTruncated : false, bucket : param.Bucket, subDeleted : true}, param.Bucket, folder, null, ctx => {
 			if(ctx.isTruncated || ctx.finished !== ctx.total){
 				return;
 			}
@@ -179,7 +181,7 @@ posix.extend = function(ObsClient){
 				that.dropFile({
 					Bucket : ctx.bucket,
 					Key : folder
-				}, function(err, result){
+				}, (err, result) => {
 					if(err){
 						eventCallback('dropFileFailed', folder, err);
 						return _callback(err);

@@ -1,3 +1,16 @@
+Verison 3.25.5
+
+New features:
+
+1. [Function]  Add BPA API adaptation for buckets.
+2. [Function]  Put upload supports callback parameters.
+3. [Function]  Supports compatibility with the posix trash. 
+
+Resolved issues:
+1. [Function] Instantiate Axios and fix Axios pollution issues.
+
+-----------------------------------------------------------------------------------
+
 Verison 3.24.3
 
 New features:

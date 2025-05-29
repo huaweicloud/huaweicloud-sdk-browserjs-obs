@@ -1,5 +1,4 @@
 /**
- * Copyright 2019 Huawei Technologies Co.,Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
  * License at
@@ -42,7 +41,15 @@ import {
 	ListBuckets,
 	ListBucketsOutput,
 	GetBucketLocation,
-	GetBucketLocationOutput
+	GetBucketLocationOutput,
+	PutBucketPublicAccessBlock,
+	GetBucketPublicAccessBlock,
+	GetBucketPublicAccessBlockOutput,
+	DeleteBucketPublicAccessBlock,
+	GetBucketPolicyPublicStatus,
+	GetBucketPolicyPublicStatusOutput,
+	GetBucketPublicStatus,
+	GetBucketPublicStatusOutput,
 } from './v2BucketOperationModel';
 
 import {
@@ -64,7 +71,11 @@ import {
 	updateSFSPermissionGroup,
 	getSFSPermissionGroup,
 	getSFSPermissionGroupOutput,
-	deleteSFSPermissionGroup
+	deleteSFSPermissionGroup,
+	SetBucketTrash,
+	GetBucketTrash,
+	GetBucketTrashOutput,
+	DeleteBucketTrash,
 } from './v2SfsBucketOperationModel';
 
 import {
@@ -121,6 +132,12 @@ const bucketEncryptionRule = {
 					'sentAs': 'KMSDataEncryption'
 				}
 			}
+		},
+		'BucketKeyEnabled': {
+			'sentAs': 'BucketKeyEnabled'
+		},
+		'BucketKeyRotationPeriod': {
+			'sentAs': 'BucketKeyRotationPeriod'
 		}
 	}
 };
@@ -480,6 +497,9 @@ const indexDocument = {
 		'Suffix' : {
 			'sentAs' : 'Suffix',
 		},
+		'Type' : {
+			'sentAs' : 'Type',
+		},
 	}
 };
 
@@ -491,6 +511,9 @@ const errorDocument = {
 		'Key' : {
 			'sentAs' : 'Key',
 		},
+		'HttpStatus' : {
+			'sentAs' : 'HttpStatus',
+		}
 	}
 };
 
@@ -649,7 +672,18 @@ const operations = {
 	getSFSPermissionGroup,
 	getSFSPermissionGroupOutput,
 	deleteSFSPermissionGroup,
-
+	PutBucketPublicAccessBlock,
+	GetBucketPublicAccessBlock,
+	GetBucketPublicAccessBlockOutput,
+	DeleteBucketPublicAccessBlock,
+	GetBucketPolicyPublicStatus,
+	GetBucketPolicyPublicStatusOutput,
+	GetBucketPublicStatus,
+	GetBucketPublicStatusOutput,
+	SetBucketTrash,
+	GetBucketTrash,
+	GetBucketTrashOutput,
+	DeleteBucketTrash,
 	GetBucketMetadata,
 	GetBucketMetadataOutput,
 	DeleteBucket,
@@ -1056,6 +1090,10 @@ const operations = {
 				'required' : true,
 				'location' : 'uri',
 			},
+			'SignatureVerification':{
+				'location' : 'xml',
+				'sentAs' : 'SignatureVerification',
+			},
 			'RedirectAllRequestsTo' : redirectAllRequestsTo,
 			'IndexDocument' : indexDocument,
 			'ErrorDocument' : errorDocument,
@@ -1078,6 +1116,10 @@ const operations = {
 			'xmlRoot' : 'WebsiteConfiguration',
 		},
 		'parameters' : {
+			'SignatureVerification':{
+				'location' : 'xml',
+				'sentAs' : 'SignatureVerification',
+			},
 			'RedirectAllRequestsTo' : redirectAllRequestsTo,
 			'IndexDocument' : indexDocument,
 			'ErrorDocument' : errorDocument,
@@ -1234,6 +1276,10 @@ const operations = {
 			'xmlRoot' : 'ObjectLockConfiguration',
 		},
 		'parameters' : {
+			'ObjectLockEnabled': {
+				'location' : 'xml',
+				'sentAs': 'ObjectLockEnabled',
+			},
 			'Rule' : ObjectLock
 		}
 	},
@@ -1249,6 +1295,10 @@ const operations = {
 			'Bucket' : {
 				'required' : true,
 				'location' : 'uri',
+			},
+			'ObjectLockEnabled': {
+				'location' : 'xml',
+				'sentAs': 'ObjectLockEnabled',
 			},
 			'Rule' : ObjectLock
 		}
@@ -1502,10 +1552,34 @@ const operations = {
 			},
 			'ProgressCallback' : {
 				'type' : 'plain'
-			}
+			},
+			'Callback' :{
+				'location' : 'header',
+				'sentAs': 'callback',
+				'withPrefix' : true,
+				'type': 'callback',
+				'parameters': {
+					'CallbackUrl' : {
+						'required' : true,
+					},
+					'CallbackBody' : {
+						'required' : true,
+					},
+					'CallbackHost' : {},
+					'CallbackBodyType' : {},
+				}
+			},
+			'ForbiddenOverwrite' :{
+				'location' : 'header',
+				'sentAs' : 'forbidden-overwrite',
+				'withPrefix' : true,
+			},
 		},
 	},
 	'PutObjectOutput' : {
+		'data' : {
+			'type' : 'body'
+		},
 		'parameters' : {
 			'ETag' : {
 				'location' : 'header',
@@ -1523,6 +1597,10 @@ const operations = {
 			},
 			...ObjectEncryptionRule,
 		},
+		"CallbackResponse": {
+			'location': 'body',
+			'sentAs': 'CallbackResponseBody'
+		}
 	},
 	'AppendObject' : {
 		'httpMethod' : 'POST',
@@ -3160,6 +3238,11 @@ const operations = {
 					'CallbackHost' : {},
 					'CallbackBodyType' : {},
 				}
+			},
+			'ForbiddenOverwrite' :{
+				'location' : 'header',
+				'sentAs' : 'forbidden-overwrite',
+				'withPrefix' : true,
 			},
 		},
 	},

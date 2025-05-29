@@ -25,12 +25,24 @@ import {
 	GetBucketMetadataOutput,
 	DeleteBucket,
 	ListBuckets,
-	ListBucketsOutput
+	ListBucketsOutput,
+	PutBucketPublicAccessBlock,
+	GetBucketPublicAccessBlock,
+	GetBucketPublicAccessBlockOutput,
+	DeleteBucketPublicAccessBlock,
+	GetBucketPolicyPublicStatus,
+	GetBucketPolicyPublicStatusOutput,
+	GetBucketPublicStatus,
+	GetBucketPublicStatusOutput,
 } from './obsBucketOperationModel';
 
 import {
 	CreateSfsBucket,
-	DeleteSfsBucket
+	DeleteSfsBucket,
+	SetBucketTrash,
+	GetBucketTrash,
+	GetBucketTrashOutput,
+	DeleteBucketTrash,
 } from './obsSfsBucketOperationModel';
 
 import {
@@ -321,6 +333,9 @@ const indexDocument = {
 		'Suffix' : {
 			'sentAs' : 'Suffix',
 		},
+		'Type' : {
+			'sentAs' : 'Type',
+		},
 	}
 };
 
@@ -332,6 +347,9 @@ const errorDocument = {
 		'Key' : {
 			'sentAs' : 'Key',
 		},
+		'HttpStatus' : {
+			'sentAs' : 'HttpStatus',
+		}
 	}
 };
 
@@ -465,6 +483,12 @@ const bucketEncryptionRule = {
 						'sentAs': 'KMSDataEncryption'
 					}
 				}
+			},
+			'BucketKeyEnabled': {
+				'sentAs': 'BucketKeyEnabled'
+			},
+			'BucketKeyRotationPeriod': {
+				'sentAs': 'BucketKeyRotationPeriod'
 			}
 		}
 	};
@@ -586,6 +610,18 @@ const operations = {
 	DeleteBucket,
 	ListBuckets,
 	ListBucketsOutput,
+	PutBucketPublicAccessBlock,
+	GetBucketPublicAccessBlock,
+	GetBucketPublicAccessBlockOutput,
+	DeleteBucketPublicAccessBlock,
+	GetBucketPolicyPublicStatus,
+	GetBucketPolicyPublicStatusOutput,
+	GetBucketPublicStatus,
+	GetBucketPublicStatusOutput,
+	SetBucketTrash,
+	GetBucketTrash,
+	GetBucketTrashOutput,
+	DeleteBucketTrash,
 	"ListSfsBuckets": {
 		'httpMethod' : 'GET',
 		"parameters": {
@@ -1266,6 +1302,10 @@ const operations = {
 				'required' : true,
 				'location' : 'uri',
 			},
+			'SignatureVerification':{
+				'location' : 'xml',
+				'sentAs' : 'SignatureVerification',
+			},
 			'RedirectAllRequestsTo' : redirectAllRequestsTo,
 			'IndexDocument' : indexDocument,
 			'ErrorDocument' : errorDocument,
@@ -1288,6 +1328,10 @@ const operations = {
 			'xmlRoot' : 'WebsiteConfiguration',
 		},
 		'parameters' : {
+			'SignatureVerification':{
+				'location' : 'xml',
+				'sentAs' : 'SignatureVerification',
+			},
 			'RedirectAllRequestsTo' : redirectAllRequestsTo,
 			'IndexDocument' : indexDocument,
 			'ErrorDocument' : errorDocument,
@@ -1448,6 +1492,10 @@ const operations = {
 			'xmlRoot' : 'ObjectLockConfiguration',
 		},
 		'parameters' : {
+			'ObjectLockEnabled': {
+				'location' : 'xml',
+				'sentAs': 'ObjectLockEnabled',
+			},
 			'Rule' : ObjectLock
 		}
 	},
@@ -1463,6 +1511,10 @@ const operations = {
 			'Bucket' : {
 				'required' : true,
 				'location' : 'uri',
+			},
+			'ObjectLockEnabled': {
+				'location' : 'xml',
+				'sentAs': 'ObjectLockEnabled',
 			},
 			'Rule' : ObjectLock
 		}
@@ -1727,10 +1779,34 @@ const operations = {
 			},
 			'ProgressCallback' : {
 				'type' : 'plain'
-			}
+			},
+			'Callback' :{
+				'location' : 'header',
+				'sentAs': 'callback',
+				'withPrefix' : true,
+				'type': 'callback',
+				'parameters': {
+					'CallbackUrl' : {
+						'required' : true,
+					},
+					'CallbackBody' : {
+						'required' : true,
+					},
+					'CallbackHost' : {},
+					'CallbackBodyType' : {},
+				}
+			},
+			'ForbiddenOverwrite' :{
+				'location' : 'header',
+				'sentAs' : 'forbidden-overwrite',
+				'withPrefix' : true,
+			},
 		},
 	},
 	'PutObjectOutput' : {
+		'data' : {
+			'type' : 'body'
+		},
 		'parameters' : {
 			'ETag' : {
 				'location' : 'header',
@@ -1748,6 +1824,10 @@ const operations = {
 			},
 			...ObjectEncryptionRule,
 		},
+		"CallbackResponse": {
+			'location': 'body',
+			'sentAs': 'CallbackResponseBody'
+		}
 	},
 	'AppendObject' : {
 		'httpMethod' : 'POST',
@@ -3414,6 +3494,11 @@ const operations = {
 					'CallbackHost' : {},
 					'CallbackBodyType' : {},
 				}
+			},
+			'ForbiddenOverwrite' :{
+				'location' : 'header',
+				'sentAs' : 'forbidden-overwrite',
+				'withPrefix' : true,
 			},
 		},
 	},

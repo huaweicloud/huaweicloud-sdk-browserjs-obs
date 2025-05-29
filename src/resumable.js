@@ -1,5 +1,4 @@
 /**
- * Copyright 2019 Huawei Technologies Co.,Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
  * License at
@@ -12,9 +11,9 @@
  * specific language governing permissions and limitations under the License.
  *
  */
-import md5 from 'blueimp-md5';
-import { Base64 } from 'js-base64';
 import CryptoJS from 'crypto-js'
+const md5 = CryptoJS.MD5
+const Base64 = CryptoJS.enc.Base64;
 
 const minPartSize = 100 * 1024;
 const defaultPartSize = 9 * 1024 * 1024;
@@ -49,7 +48,7 @@ let wrapEventCallback = function(eventCallback){
 		}
 		
 		if(!result){
-			return;
+			return undefined;
 		}
 		
 		if(result.CommonMsg.Status > 300){
@@ -57,6 +56,7 @@ let wrapEventCallback = function(eventCallback){
 		}
 
 		eventCallback(t, eventParam, result);
+		return undefined;
 	};
 };
 
@@ -97,7 +97,7 @@ let calculateUploadCheckpointMD5 = function(uploadCheckpoint){
 			}
 		}
 	}
-	return window.btoa(md5(data.join(''), false, true));
+	return Base64.stringify(md5(data.join(''), false, true));
 };
 
 let abortRequest = function(uploadCheckpoint, funcName, that){
@@ -107,25 +107,26 @@ let abortRequest = function(uploadCheckpoint, funcName, that){
 			Key:uploadCheckpoint.key,
 			RequestDate : uploadCheckpoint.requestDate,
 			UploadId:uploadCheckpoint.uploadId,
-		},function(err, result){
+		},(err, result) => {
 			if(err){
 				that.log.runLog('warn', funcName, 'abort multipart upload failed, bucket:' + uploadCheckpoint.bucket + ', key:' + uploadCheckpoint.key + ', uploadId:' + uploadCheckpoint.uploadId + ', err:' + err);
-				return;
+				return undefined;
 			}
 			if(result.CommonMsg.Status >= 300){
 				that.log.runLog('warn', funcName, 'abort multipart upload failed, bucket:' + uploadCheckpoint.bucket + 
 						', key:' + uploadCheckpoint.key + ', uploadId:' + uploadCheckpoint.uploadId + ', status:' + result.CommonMsg.Status + ', code:' + result.CommonMsg.Code + ', message:' + result.CommonMsg.Message);
-				return;
+				return undefined;
 			}
 			delete uploadCheckpoint.uploadId;
 			that.log.runLog('warn', funcName, 'abort multipart upload succeed, bucket:' + uploadCheckpoint.bucket + ', key:' + uploadCheckpoint.key + ', uploadId:' + uploadCheckpoint.uploadId);
+			return undefined;
 		});
 	}
 };
 
 let completedRequest = function(ctx){
 	if(ctx.finishedCount < ctx.uploadCheckpoint.partCount){
-		return;
+		return undefined;
 	}
 	
 	if(ctx.isAbort){
@@ -159,8 +160,9 @@ let completedRequest = function(ctx){
 		CallbackUrl: ctx.callbackUrl,
 		CallbackHost: ctx.callbackHost,
 		CallbackBody: ctx.callbackBody,
-		CallbackBodyType: ctx.callbackBodyType
-	}, function(err, result){
+		CallbackBodyType: ctx.callbackBodyType,
+		ForbiddenOverwrite: ctx.forbiddenOverwrite
+	}, (err, result) => {
 		let eventParam = {bucket : ctx.uploadCheckpoint.bucket, key : ctx.uploadCheckpoint.key, uploadId : ctx.uploadCheckpoint.uploadId};
 		if(err){
 			ctx.eventCallback('completeMultipartUploadFailed', eventParam, err);
@@ -180,7 +182,9 @@ let completedRequest = function(ctx){
 		
 		ctx.eventCallback('completeMultipartUploadSucceed', eventParam, result);
 		ctx.callback(null, result);
+		return undefined;
 	});
+	return undefined;
 };
 
 let startToUploadFile = function(ctx){
@@ -210,12 +214,12 @@ let startToUploadFile = function(ctx){
 	let doNext = function(){
 		if(taskQueue.length === 0){
 			completedRequest(ctx);
-			return
+			return undefined
 		}
 		while(ctx.runningTask < ctx.taskNum && taskQueue.length > 0){
 			taskQueue.shift()();
 		}
-		
+		return undefined;
 	};
 	
 	let createProgressCallbackByPartNumber = function(partNumber){
@@ -235,7 +239,6 @@ let startToUploadFile = function(ctx){
 		return blob.slice(start, end, type);
 	};
 	
-	let encodeFunc = window.btoa ? window.btoa : Base64.encode;
 	
 	let createUploadPartTask = function(part){
 		return function(){
@@ -250,7 +253,7 @@ let startToUploadFile = function(ctx){
 			let started = 0;
 			let doUploadPart = function(contentMd5){
 				if(started){
-					return;
+					return undefined;
 				}
 				started = 1;
 				let uploadPartParam = {
@@ -270,7 +273,7 @@ let startToUploadFile = function(ctx){
 				};
 				ctx.uploadPartParams.push(uploadPartParam);
 				
-				ctx.that.uploadPart(uploadPartParam, function(err, result) {
+				ctx.that.uploadPart(uploadPartParam, (err, result) => {
 					ctx.runningTask--;
 					ctx.finishedCount++;
 					if(ctx.isSuspend){
@@ -297,7 +300,9 @@ let startToUploadFile = function(ctx){
 						ctx.that.log.runLog('debug', ctx.funcName, 'Part ' + String(part.partNumber) + ' is finished, uploadId ' + ctx.uploadCheckpoint.uploadId);
 					}
 					doNext();
+					return undefined;
 				});
+				return undefined;
 			};
 			
 			
@@ -317,10 +322,11 @@ let startToUploadFile = function(ctx){
 					doUploadPart();
 				};
 				fr.readAsArrayBuffer(_sourceFile);
-				return;
+				return undefined;
 			}
 			
 			doUploadPart();
+			return undefined;
 		};
 		
 	};
@@ -341,6 +347,7 @@ let startToUploadFile = function(ctx){
 		return doNext();
 	}
 	ctx.callback('the process of uploadFile is suspened, you can retry with the uploadCheckpoint');
+	return undefined;
 };
 
 let resumable = {};
@@ -388,7 +395,11 @@ resumable.extend = function(ObsClient){
 				partCount = 1;
 				parts.push({partNumber : 1, offset : 0, partSize : 0, isCompleted : false});
 			}else{
-				partSize = isNaN(partSize) ? defaultPartSize : (partSize < minPartSize ? defaultPartSize : (partSize > maxPartSize ? maxPartSize : partSize));
+				if (isNaN(partSize) || partSize < minPartSize) {
+					partSize = defaultPartSize;
+				} else {
+					partSize = Math.min(partSize, maxPartSize);
+				}
 				partCount = Math.floor(fileSize / partSize);
 				if(partCount >= 10000){
 					partSize = Math.floor(fileSize / 10000);
@@ -469,19 +480,21 @@ resumable.extend = function(ObsClient){
 			callbackUrl: param.CallbackUrl,
 			callbackHost: param.CallbackHost,
 			callbackBody: param.CallbackBody,
-			callbackBodyType: param.CallbackBodyType
+			callbackBodyType: param.CallbackBodyType,
+			forbiddenOverwrite: param.ForbiddenOverwrite
 		};
 		
 		ctx.eventCallback = function(t, eventParam, result){
 			if(ctx.isSuspend){
-				return;
+				return undefined;
 			}
 			eventCallback(t, eventParam, result);
+			return undefined;
 		};
 		
 		ctx.progressCallback = function(partNumber, loaded){
 			if(ctx.isSuspend){
-				return;
+				return undefined;
 			}
 			ctx.finishedBytes += loaded;
 			if(ctx.partsLoaded[partNumber]){
@@ -489,6 +502,7 @@ resumable.extend = function(ObsClient){
 			}
 			ctx.partsLoaded[partNumber] = loaded;
 			progressCallback(ctx.finishedBytes, ctx.uploadCheckpoint.fileStat.fileSize, (new Date().getTime() - ctx.start) / 1000);
+			return undefined;
 		};
 		
 		if(!uploadCheckpoint.uploadId){
@@ -515,7 +529,7 @@ resumable.extend = function(ObsClient){
 				SseKmsKey : param.SseKmsKey,
 				SseC : param.SseC,
 				SseCKey : param.SseCKey
-			}, function(err, result){
+			}, (err, result) => {
 				let eventParam = {bucket : param.Bucket, key : param.Key};
 				if(err){
 					ctx.eventCallback('initiateMultipartUploadFailed', eventParam, err);
@@ -535,10 +549,12 @@ resumable.extend = function(ObsClient){
 				that.log.runLog('info', funcName, 'Claim a new upload id ' + uploadId);
 				ctx.eventCallback('initiateMultipartUploadSucceed', eventParam, result);
 				startToUploadFile(ctx);
+				return undefined;
 			});
-			return;
+			return undefined;
 		}
 		startToUploadFile(ctx);
+		return undefined;
 	};
 };
 export default resumable;

@@ -1,5 +1,4 @@
 /**
- * Copyright 2019 Huawei Technologies Co.,Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
  * License at
@@ -13,15 +12,17 @@
  *
  */
 
-import URI from 'urijs';
 import axios from 'axios';
 import SHA from 'jssha';
-import { Base64 } from 'js-base64';
-import md5 from 'blueimp-md5';
 import xml2js from './xml2js';
 import obsModel from './obsModel';
 import v2Model from './v2Model';
 import { ContentMD5, ContentSHA256 } from './enums';
+import CryptoJS from 'crypto-js'
+import { Base64 } from 'js-base64';
+const instance = axios.create();
+const md5 = CryptoJS.MD5
+const CryBase64 = CryptoJS.enc.Base64;
 
 const crypto = {
 		createHmac : function(algorithm, key){
@@ -70,12 +71,10 @@ const crypto = {
 							return md5(this.message);
 						}
 						if(type === 'base64'){
-							let encodeFunc = window.btoa ? window.btoa : Base64.encode;
-							return encodeFunc(md5(this.message, false, true));
+							return CryBase64.stringify(md5(this.message, false, true));
 						}
 						if(type === 'rawbase64'){
-							let encodeFunc = window.btoa ? window.btoa : Base64.encode;
-							return encodeFunc(md5(this.message, false, true));
+							return CryBase64.stringify(md5(this.message, false, true));
 						}
 						return md5(this.message, false, true);
 					}
@@ -112,30 +111,25 @@ const crypto = {
 };
 
 const urlLib = {
-		parse : function(url){
-			let uri = URI.parse(url);
-			return {
-				hostname : uri.hostname,
-
-				port : uri.port,
-
-				host : uri.hostname,
-
-				protocol : uri.protocol ? uri.protocol + ':' : '',
-
-				query : uri.query,
-
-			    path : uri.path + (uri.query ? '?' + uri.query : ''),
-
-			    pathname :uri.path,
-
-			    search : uri.query ? '?' + uri.query : ''
-			};
-		}
+	parse: function(url) {
+		// 严格解析绝对 URL（若传入相对路径将抛出错误）
+		const urlObj = new URL(url);
+		const rawPort = urlObj.port || (urlObj.protocol === 'https:' ? '443' : '80');
+		return {
+			hostname: urlObj.hostname,                   // 主机名（不含端口）
+			port: rawPort,                           	// 显式指定的端口（默认端口时返回空）
+			host: urlObj.hostname,                       // 与原代码逻辑一致（注意非常规用法）
+			protocol: urlObj.protocol,                   // 协议带冒号（如 "http:"）
+			query: urlObj.search.slice(1) || '',         // 查询参数（不含问号）
+			path: urlObj.pathname + urlObj.search,       // 完整路径（含查询）
+			pathname: urlObj.pathname,                  // 路径部分
+			search: urlObj.search                        // 查询部分（含问号）
+		};
+	}
 };
 
 const CONTENT_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-const OBS_SDK_VERSION = '3.22.3';
+const OBS_SDK_VERSION = '3.25.3';
 
 const mimeTypes = {
     '7z' : 'application/x-7z-compressed',
@@ -314,6 +308,11 @@ const allowedResourceParameterNames = [
 	'object-lock',
 	"retention",
 	'x-obs-security-token',
+	'publicaccessblock',
+	'x-obs-trash',
+	'bucketstatus',
+	'policystatus',
+	'x-obs-callback'
 ];
 
 
@@ -350,9 +349,9 @@ const commonHeaders = {
 	'x-reserved' : 'Reserved'
 };
 
-const obsAllowedStorageClass = ['STANDARD', 'WARM', 'COLD', 'DEEP_ARCHIVE', 'INTELLIGENT_TIERING'];
+const obsAllowedStorageClass = ['STANDARD', 'WARM', 'COLD', 'DEEP_ARCHIVE', 'INTELLIGENT_TIERING', 'HIGH_PERFORMANCE'];
 
-const v2AllowedStorageClass = ['STANDARD', 'STANDARD_IA', 'GLACIER', 'DEEP_ARCHIVE', 'INTELLIGENT_TIERING'];
+const v2AllowedStorageClass = ['STANDARD', 'STANDARD_IA', 'GLACIER', 'DEEP_ARCHIVE', 'INTELLIGENT_TIERING', 'HIGH_PERFORMANCE'];
 
 const obsAllowedAcl = ['private', 'public-read', 'public-read-write', 'public-read-delivered', 'public-read-write-delivered'];
 
@@ -440,6 +439,16 @@ function isObject(obj){
 	return Object.prototype.toString.call(obj) === '[object Object]';
 }
 
+function makeObjFromBody(body){
+	if (typeof body === 'string') {
+		try{
+			return JSON.parse(body);
+		}catch(err){
+			return body;
+		}
+	}
+	return body;
+}
 
 function makeObjFromXml(xml, bc){
 	if (typeof xml === 'object') {
@@ -826,6 +835,9 @@ Utils.prototype.doExec = function(funcName, param, callback){
 	if('err' in opt){
 		return callback(opt.err, null);
 	}
+	if(funcName === 'HeadApiVersion' && {}.hasOwnProperty.call(param, 'hasRegion')) {
+		opt.headers.Region = param.region || param.bucketRegion
+	}
 	this.sendRequest(funcName, opt, callback);
 };
 
@@ -868,7 +880,7 @@ Utils.prototype.doNegotiation = function(funcName, param, callback, checkBucket,
 		o.s = 1;
 	}
 
-	this.doExec(negotiateMethod, checkBucket ? {Bucket:param.Bucket, hasRegion: param.hasRegion} : {},  function(err, result){
+	this.doExec(negotiateMethod, checkBucket ? {Bucket:param.Bucket, hasRegion: param.hasRegion, region: param.region || param.bucketRegion} : {},  function(err, result){
 		if(err){
 			callback(err, null);
 			if(o){
@@ -1390,7 +1402,7 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
 
 		if(body && ('data' in model)){
 			if (params.CallbackUrl && model.CallbackResponse) {
-				opt.InterfaceResult[model.CallbackResponse.sentAs] = body;
+				opt.InterfaceResult[model.CallbackResponse.sentAs] = makeObjFromBody(body);
 				doLog();
 				return;
 			}
@@ -1423,7 +1435,7 @@ Utils.prototype.getRequest = function(methodName, serverback, signatureContext, 
 			if(model.data.type === 'body'){
 				for (let key in obj){
 					if(obj[key].location === 'body'){
-						opt.InterfaceResult[key] = body;
+						opt.InterfaceResult[key] = makeObjFromBody(body);
 						break;
 					}
 				}
@@ -1720,7 +1732,7 @@ Utils.prototype.makeRequest = function(methodName, opt, retryCount, bc){
 
 			reopt.data = srcFile;
 		}
-		axios.request(reopt).then(function (response) {
+		instance.request(reopt).then(function (response) {
 			log.runLog('info', methodName, 'http cost ' +  (new Date().getTime()-start) + ' ms');
 			that.getRequest(methodName, response, signatureContext, retryCount, opt.$requestParam, bc);
 		}).catch(function (err) {

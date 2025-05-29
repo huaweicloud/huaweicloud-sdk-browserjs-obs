@@ -107,7 +107,17 @@ export const ObjectEncryptionRule = {
         'location' : 'header',
         'sentAs' : 'server-side-encryption-customer-key-MD5',
         'withPrefix' : true
-    }
+    },
+    'BucketKeyEnabled' :{
+        'location' : 'header',
+        'sentAs' : 'server-side-encryption-bucket-key-enabled',
+        'withPrefix' : true
+    },
+    'BucketKeyRotationPeriod' :{
+        'location' : 'header',
+        'sentAs' : 'server-side-encryption-bucket-key-rotation-period',
+        'withPrefix' : true
+    },
 }
 
 export const BucketEncryptionRule = {
@@ -131,7 +141,17 @@ export const BucketEncryptionRule = {
         'location' : 'header',
         'sentAs': 'sse-kms-key-project-id',
         'withPrefix' : true,
-    }
+    },
+    'BucketKeyEnabled' :{
+        'location' : 'header',
+        'sentAs' : 'server-side-encryption-bucket-key-enabled',
+        'withPrefix' : true
+    },
+    'BucketKeyRotationPeriod' :{
+        'location' : 'header',
+        'sentAs' : 'server-side-encryption-bucket-key-rotation-period',
+        'withPrefix' : true
+    },
 }
 
 export const CreateAuditPolicy = {
@@ -264,6 +284,26 @@ export const lifecycleRule = {
                 'type': 'object',
                 'sentAs': 'Filter',
                 'parameters': {
+                    'Prefix': {
+                        'sentAs': 'Prefix'
+                    },
+                    'Tag': {
+                        'type': 'array',
+                        'sentAs': 'Tag',
+                        'items': {
+                            'type': 'object',
+                            'location': 'xml',
+                            'sentAs': 'Tag',
+                            'parameters': {
+                                'Key': {
+                                    'sentAs': 'Key'
+                                },
+                                'Value': {
+                                    'sentAs': 'Value'
+                                }
+                            }
+                        }
+                    },
                     // 即使array中仅有一条记录也可以使用And属性
                     'And': {
                         'type': 'object',
@@ -574,4 +614,30 @@ export const functionStageConfiguration = {
 			}
 		}
 	}	
+};
+
+export const PublicAccessBlockBody = {
+    'BlockPublicAcls' : {
+        'location' : 'xml',
+        'sentAs' : 'BlockPublicAcls',
+    },
+    'IgnorePublicAcls' : {
+        'location' : 'xml',
+        'sentAs' : 'IgnorePublicAcls',
+    },
+    'BlockPublicPolicy' : {
+        'location' : 'xml',
+        'sentAs' : 'BlockPublicPolicy',
+    },
+    'RestrictPublicBuckets' : {
+        'location' : 'xml',
+        'sentAs' : 'RestrictPublicBuckets',
+    }
+};
+
+export const PosixTrashBody = {
+    'ReservedDays' : {
+        'location' : 'xml',
+        'sentAs' : 'ReservedDays',
+    }
 };
