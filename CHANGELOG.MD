@@ -4,7 +4,7 @@ New features:
 
 1. [Function]  Add BPA API adaptation for buckets.
 2. [Function]  Put upload supports callback parameters.
-3. [Function]  Supports compatibility with the posix trash. 
+3. [Function]  Add the posix trash API. 
 
 Resolved issues:
 1. [Function] Instantiate Axios and fix Axios pollution issues.

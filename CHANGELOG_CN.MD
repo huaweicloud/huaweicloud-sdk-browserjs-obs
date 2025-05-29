@@ -4,7 +4,7 @@
 
 1. 【功能】 增加桶BPA API 适配；
 2. 【功能】 put上传支持callback参数；
-3. 【功能】 支持posix垃圾桶API 适配；
+3. 【功能】 增加posix垃圾桶API 适配；
 
 修复问题：
 1. 【功能】 实例化axios，修复axios污染问题；
