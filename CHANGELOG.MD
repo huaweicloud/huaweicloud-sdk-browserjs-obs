@@ -1,3 +1,12 @@
+Verison 3.25.51
+
+New features:
+
+Resolved issues:
+1. [Function] Upload support for the forbid-overwrit header field.
+
+-----------------------------------------------------------------------------------
+
 Verison 3.25.5
 
 New features:
