@@ -161,7 +161,7 @@ let completedRequest = function(ctx){
 		CallbackHost: ctx.callbackHost,
 		CallbackBody: ctx.callbackBody,
 		CallbackBodyType: ctx.callbackBodyType,
-		ForbiddenOverwrite: ctx.forbiddenOverwrite
+		ForbidOverwrite: ctx.forbidOverwrite
 	}, (err, result) => {
 		let eventParam = {bucket : ctx.uploadCheckpoint.bucket, key : ctx.uploadCheckpoint.key, uploadId : ctx.uploadCheckpoint.uploadId};
 		if(err){
@@ -481,7 +481,7 @@ resumable.extend = function(ObsClient){
 			callbackHost: param.CallbackHost,
 			callbackBody: param.CallbackBody,
 			callbackBodyType: param.CallbackBodyType,
-			forbiddenOverwrite: param.ForbiddenOverwrite
+			forbidOverwrite: param.ForbidOverwrite
 		};
 		
 		ctx.eventCallback = function(t, eventParam, result){

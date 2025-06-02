@@ -1796,9 +1796,9 @@ const operations = {
 					'CallbackBodyType' : {},
 				}
 			},
-			'ForbiddenOverwrite' :{
+			'ForbidOverwrite' :{
 				'location' : 'header',
-				'sentAs' : 'forbidden-overwrite',
+				'sentAs' : 'forbid-overwrite',
 				'withPrefix' : true,
 			},
 		},
@@ -3495,9 +3495,9 @@ const operations = {
 					'CallbackBodyType' : {},
 				}
 			},
-			'ForbiddenOverwrite' :{
+			'ForbidOverwrite' :{
 				'location' : 'header',
-				'sentAs' : 'forbidden-overwrite',
+				'sentAs' : 'forbid-overwrite',
 				'withPrefix' : true,
 			},
 		},
