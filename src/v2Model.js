@@ -3829,6 +3829,15 @@ const operations = {
 						},
 						'CertificateId' : {
 							'sentAs' : 'CertificateId',
+						},
+						'Name' : {
+							'sentAs' : 'Name',
+						},
+						'CertificateType' : {
+							'sentAs' : 'CertificateType',
+						},
+						'ExpiredTime' : {
+							'sentAs' : 'ExpiredTime',
 						}
 					}
 				}

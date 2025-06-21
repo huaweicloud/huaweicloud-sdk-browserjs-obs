@@ -2555,10 +2555,8 @@ Utils.prototype.createPostSignatureSync = function(param){
 	if(matchAnyKey){
 		policy.push('["starts-with", "$key", ""],');
 	}
-
-	policy.push(']}');
-
-	let originPolicy = policy.join('');
+	// 去除末尾的逗号
+	let originPolicy = policy.join('').replace(/,$/, '') + ']}';
 
 	if(window.btoa){
 		policy = window.btoa(originPolicy);

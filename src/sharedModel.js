@@ -453,6 +453,22 @@ export const CustomDomainBody = {
         'location' : 'xml',
         'sentAs' : 'PrivateKey',
     },
+    'CertificateType' : {
+        'location' : 'xml',
+        'sentAs' : 'CertificateType',
+    },
+    'ENCCertificate' : {
+        'location' : 'xml',
+        'sentAs' : 'ENCCertificate',
+    },
+    'ENCPrivateKey' : {
+        'location' : 'xml',
+        'sentAs' : 'ENCPrivateKey',
+    },
+    'DeleteCertificate' : {
+        'location' : 'xml',
+        'sentAs' : 'DeleteCertificate',
+    },
 };
 
 export const functionGraphConfiguration = {
